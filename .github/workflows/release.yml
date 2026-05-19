@@ -1,0 +1,110 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  version-bump:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      new_version: ${{ steps.bump.outputs.new_version }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Bump patch version
+        id: bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          npm version patch --no-git-tag-version
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          git add package.json package-lock.json
+          git commit -m "chore: bump version to v$NEW_VERSION [skip ci]"
+          git push
+
+  build:
+    needs: version-bump
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            script: build:mac
+            artifact-glob: dist-electron/*.dmg
+            artifact-name: mac-build
+          - os: windows-latest
+            script: build:win
+            artifact-glob: dist-electron/*.exe
+            artifact-name: windows-build
+          - os: ubuntu-latest
+            script: build:linux
+            artifact-glob: dist-electron/*.AppImage
+            artifact-name: linux-build
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Check out the version-bump commit, not the original trigger commit
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run ${{ matrix.script }}
+        env:
+          # Prevents electron-builder from trying to sign/notarize without credentials
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: ${{ matrix.artifact-glob }}
+          if-no-files-found: error
+
+  release:
+    needs: [version-bump, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create or update release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.version-bump.outputs.new_version }}
+          name: v${{ needs.version-bump.outputs.new_version }}
+          generate_release_notes: true
+          make_latest: true
+          files: artifacts/**/*
