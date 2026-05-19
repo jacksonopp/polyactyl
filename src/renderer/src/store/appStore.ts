@@ -13,6 +13,7 @@ interface AppState {
   rootDirectory: string | null;
   fileTree: FileEntry[];
   isLoadingDirectory: boolean;
+  showEmptyDirs: boolean;
 
   // Open file tabs
   tabs: Tab[];
@@ -32,11 +33,16 @@ interface AppState {
   setRootDirectory: (path: string | null) => void;
   setFileTree: (tree: FileEntry[]) => void;
   setLoadingDirectory: (loading: boolean) => void;
+  setShowEmptyDirs: (show: boolean) => void;
 
   openTab: (path: string, content: string, fileType?: FileType) => void;
   closeTab: (index: number) => void;
   setActiveTabIndex: (index: number) => void;
   setTabContent: (index: number, content: string) => void;
+  updateTabPath: (oldPath: string, newPath: string) => void;
+  closeTabByPath: (path: string) => void;
+  closeTabsUnderPath: (pathPrefix: string) => void;
+  updateTabsUnderPath: (oldPrefix: string, newPrefix: string) => void;
 
   setEnvironments: (envs: string[]) => void;
   setActiveEnvironment: (envs: string[]) => void;
@@ -51,6 +57,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   rootDirectory: null,
   fileTree: [],
   isLoadingDirectory: false,
+  showEmptyDirs: false,
   tabs: [],
   activeTabIndex: 0,
   environments: [],
@@ -63,6 +70,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setRootDirectory: path => set({ rootDirectory: path }),
   setFileTree: tree => set({ fileTree: tree }),
   setLoadingDirectory: loading => set({ isLoadingDirectory: loading }),
+  setShowEmptyDirs: show => set({ showEmptyDirs: show }),
 
   openTab: (path, content, fileType) => {
     const { tabs } = get();
@@ -91,6 +99,47 @@ export const useAppStore = create<AppState>((set, get) => ({
   setTabContent: (index, content) =>
     set(state => ({
       tabs: state.tabs.map((t, i) => (i === index ? { ...t, content } : t)),
+    })),
+
+  updateTabPath: (oldPath, newPath) =>
+    set(state => ({
+      tabs: state.tabs.map(t => (t.path === oldPath ? { ...t, path: newPath } : t)),
+    })),
+
+  closeTabByPath: path => {
+    const { tabs, activeTabIndex } = get();
+    const index = tabs.findIndex(t => t.path === path);
+    if (index === -1) return;
+    const next = tabs.filter((_, i) => i !== index);
+    let nextActive = activeTabIndex;
+    if (index < activeTabIndex) nextActive = activeTabIndex - 1;
+    else if (index === activeTabIndex) nextActive = Math.max(0, index - 1);
+    set({ tabs: next, activeTabIndex: next.length === 0 ? 0 : nextActive });
+  },
+
+  closeTabsUnderPath: pathPrefix => {
+    const { tabs, activeTabIndex } = get();
+    const prefix = pathPrefix.replace(/[\\/]+$/u, '') + '/';
+    const isUnder = (p: string) => p === pathPrefix || p.startsWith(prefix);
+    const next = tabs.filter(t => !isUnder(t.path));
+    const removed = tabs.reduce<number[]>((acc, t, i) => (isUnder(t.path) ? [...acc, i] : acc), []);
+    if (removed.length === 0) return;
+    const firstRemovedBeforeActive = removed.filter(i => i < activeTabIndex).length;
+    const activeWasRemoved = removed.includes(activeTabIndex);
+    let nextActive = activeTabIndex - firstRemovedBeforeActive;
+    if (activeWasRemoved) nextActive = Math.max(0, nextActive - 1);
+    set({ tabs: next, activeTabIndex: next.length === 0 ? 0 : Math.min(nextActive, next.length - 1) });
+  },
+
+  updateTabsUnderPath: (oldPrefix, newPrefix) =>
+    set(state => ({
+      tabs: state.tabs.map(t => {
+        if (t.path === oldPrefix || t.path.startsWith(oldPrefix + '/')) {
+          const newPath = newPrefix + t.path.slice(oldPrefix.length);
+          return { ...t, path: newPath };
+        }
+        return t;
+      }),
     })),
 
   setEnvironments: envs =>

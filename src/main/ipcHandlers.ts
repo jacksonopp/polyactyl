@@ -1,4 +1,4 @@
-import { BrowserWindow, clipboard, dialog, ipcMain } from 'electron';
+import { BrowserWindow, clipboard, dialog, ipcMain, shell } from 'electron';
 import { promises as fs } from 'fs';
 import { dirname, join } from 'path';
 
@@ -182,7 +182,7 @@ function hasHttpFilesInTree(entries: FileEntry[]): boolean {
   return false;
 }
 
-async function readDirectoryRecursive(dirPath: string, depth = 0): Promise<FileEntry[]> {
+async function readDirectoryRecursive(dirPath: string, depth = 0, includeEmptyDirs = false): Promise<FileEntry[]> {
   if (depth > 5) {
     return [];
   }
@@ -196,20 +196,17 @@ async function readDirectoryRecursive(dirPath: string, depth = 0): Promise<FileE
     .filter(entry => entry.isFile() && getFileType(entry.name) !== null)
     .sort((left, right) => left.name.localeCompare(right.name));
 
-  // Recursively process subdirectories, keeping only those with http files in their subtree
   const childDirs: FileEntry[] = [];
   for (const entry of directories) {
     const fullPath = join(dirPath, entry.name);
-    const children = await readDirectoryRecursive(fullPath, depth + 1);
-    if (hasHttpFilesInTree(children)) {
+    const children = await readDirectoryRecursive(fullPath, depth + 1, includeEmptyDirs);
+    if (includeEmptyDirs || hasHttpFilesInTree(children)) {
       childDirs.push({ name: entry.name, path: fullPath, isDirectory: true, children });
     }
   }
 
-  // Only show files in this directory if it qualifies:
-  // i.e. it has at least one http file directly, or a qualifying subdir (meaning http lives nearby)
   const httpFilesHere = files.filter(f => getFileType(f.name) === 'http');
-  const showAllFiles = httpFilesHere.length > 0 || childDirs.length > 0;
+  const showAllFiles = includeEmptyDirs || httpFilesHere.length > 0 || childDirs.length > 0;
 
   const fileEntries: FileEntry[] = showAllFiles
     ? files.map(entry => ({
@@ -259,8 +256,60 @@ export function registerIpcHandlers(): void {
     return result.filePaths[0];
   });
 
-  handle<string, FileEntry[]>('file:readDirectory', async (_event, dirPath) => readDirectoryRecursive(dirPath));
   handle<string, string>('file:readFile', async (_event, filePath) => fs.readFile(filePath, 'utf-8'));
+
+  handle<{ dirPath: string; includeEmptyDirs?: boolean }, FileEntry[]>('file:readDirectory', async (_event, args) =>
+    readDirectoryRecursive(args.dirPath, 0, args.includeEmptyDirs ?? false)
+  );
+
+  handle<{ filePath: string; content?: string }, void>('file:createFile', async (_event, { filePath, content = '' }) => {
+    await fs.writeFile(filePath, content, { flag: 'wx' });
+  });
+
+  handle<{ sourcePath: string; targetDir: string }, string>('file:moveFile', async (_event, { sourcePath, targetDir }) => {
+    const name = sourcePath.split(/[/\\]/u).pop()!;
+    const newPath = join(targetDir, name);
+    await fs.rename(sourcePath, newPath);
+    return newPath;
+  });
+
+  handle<string, void>('file:deleteFile', async (_event, filePath) => {
+    await fs.rm(filePath, { recursive: true, force: true });
+  });
+
+  handle<{ oldPath: string; newPath: string }, string>('file:renameEntry', async (_event, { oldPath, newPath }) => {
+    await fs.rename(oldPath, newPath);
+    return newPath;
+  });
+
+  handle<string, string>('file:duplicateFile', async (_event, filePath) => {
+    const name = filePath.split(/[/\\]/u).pop()!;
+    const dir = filePath.slice(0, filePath.length - name.length - 1);
+    const dotIndex = name.indexOf('.');
+    const base = dotIndex === -1 ? name : name.slice(0, dotIndex);
+    const ext = dotIndex === -1 ? '' : name.slice(dotIndex);
+
+    let candidatePath = join(dir, `${base}-copy${ext}`);
+    let counter = 2;
+    while (true) {
+      try {
+        await fs.access(candidatePath);
+        // File exists, try next
+        candidatePath = join(dir, `${base}-copy-${counter}${ext}`);
+        counter++;
+      } catch {
+        break; // Does not exist — use this path
+      }
+    }
+
+    const content = await fs.readFile(filePath);
+    await fs.writeFile(candidatePath, content, { flag: 'wx' });
+    return candidatePath;
+  });
+
+  handle<string, void>('shell:revealInFinder', async (_event, filePath) => {
+    shell.showItemInFolder(filePath);
+  });
 
   handle<OpenHttpFileArgs, string[]>('http:getEnvironments', async (_event, args) => {
     try {

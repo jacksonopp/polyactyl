@@ -73,8 +73,14 @@ declare global {
     httpyacAPI: {
       openDialog(): Promise<string | null>;
       openFileDialog(): Promise<string | null>;
-      readDirectory(dirPath: string): Promise<FileEntry[]>;
+      readDirectory(dirPath: string, includeEmptyDirs?: boolean): Promise<FileEntry[]>;
       readFile(filePath: string): Promise<string>;
+      createFile(filePath: string, content?: string): Promise<void>;
+      moveFile(sourcePath: string, targetDir: string): Promise<string>;
+      deleteFile(filePath: string): Promise<void>;
+      renameEntry(oldPath: string, newPath: string): Promise<string>;
+      duplicateFile(filePath: string): Promise<string>;
+      revealInFinder(filePath: string): Promise<void>;
       getEnvironments(filePath: string, content?: string): Promise<string[]>;
       send(args: SendArgs): Promise<ProcessedRegion[]>;
       onSendProgress(callback: (data: SendProgressEvent) => void): () => void;
