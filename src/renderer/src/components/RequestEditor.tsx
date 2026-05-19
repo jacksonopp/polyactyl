@@ -53,6 +53,40 @@ function buildDecorations(text: string) {
     pushRange(start, start + match[0].length, 'cm-http-interpolation');
   }
 
+  // ── GraphQL body highlighting ──────────────────────────────────────────
+  // Detect GQL blocks: a line starting with query/mutation/subscription/fragment
+  // followed by lines until the matching closing brace.
+  for (const blockMatch of text.matchAll(/^(query|mutation|subscription|fragment)\b.*$/gimu)) {
+    const blockStart = blockMatch.index ?? 0;
+
+    // keywords: query, mutation, subscription, fragment
+    pushRange(blockStart, blockStart + blockMatch[1].length, 'cm-gql-keyword');
+
+    // operation name (word after the keyword)
+    const nameMatch = /^(?:query|mutation|subscription|fragment)\s+([A-Za-z_][A-Za-z0-9_]*)/i.exec(blockMatch[0]);
+    if (nameMatch) {
+      const nameStart = blockStart + blockMatch[0].indexOf(nameMatch[1]);
+      pushRange(nameStart, nameStart + nameMatch[1].length, 'cm-gql-name');
+    }
+  }
+
+  // Field names inside GQL blocks: word followed by optional args or {
+  for (const match of text.matchAll(/^\s{2,}([a-z_][A-Za-z0-9_]*)(?:\s*[\({]|\s*$)/gmu)) {
+    const base = match.index ?? 0;
+    const fieldStart = base + match[0].indexOf(match[1]);
+    pushRange(fieldStart, fieldStart + match[1].length, 'cm-gql-field');
+  }
+
+  // GQL argument names: word followed by : inside parens (rough heuristic)
+  for (const match of text.matchAll(/\b([a-zA-Z_][a-zA-Z0-9_]*):/gmu)) {
+    // Skip HTTP headers (only 0-1 leading spaces at line start) — those are already coloured
+    const lineStart = text.lastIndexOf('\n', (match.index ?? 0) - 1) + 1;
+    const indent = (match.index ?? 0) - lineStart;
+    if (indent < 2) continue;
+    const base = match.index ?? 0;
+    pushRange(base, base + match[1].length, 'cm-gql-arg');
+  }
+
   ranges.sort((left, right) => (left.from - right.from) || (left.to - right.to));
   const builder = new RangeSetBuilder<Decoration>();
   for (const range of ranges) {

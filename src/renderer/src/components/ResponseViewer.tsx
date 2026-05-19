@@ -1,7 +1,97 @@
 import { useMemo, useState } from 'react';
+import { Highlight, themes } from 'prism-react-renderer';
 
 import type { ProcessedRegion, SerializedResponse } from '../env';
 import { useAppStore } from '../store/appStore';
+
+// ── GraphQL detection & highlighting ─────────────────
+
+/**
+ * Detects GraphQL content in two formats:
+ * 1. JSON envelope  { "query": "...", "variables": {...} }  (httpyac wraps GQL before sending)
+ * 2. Raw GQL text   query Foo { ... }  (body stored before httpyac transforms it)
+ */
+function parseGraphQLBody(body: string): { query: string; variables?: unknown } | null {
+  const trimmed = body.trim();
+  if (!trimmed) return null;
+
+  // ── 1. JSON envelope ──
+  if (trimmed.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (typeof parsed.query === 'string' && parsed.query.trim().length > 0) {
+        return { query: parsed.query.trim(), variables: parsed.variables };
+      }
+    } catch {
+      // not valid JSON, fall through
+    }
+  }
+
+  // ── 2. Raw GraphQL text ──
+  // Matches: query, mutation, subscription, fragment, or anonymous { ... }
+  if (/^(query|mutation|subscription|fragment)\b/.test(trimmed)) {
+    return { query: trimmed };
+  }
+
+  return null;
+}
+
+function GraphQLHighlight({ code }: { code: string }) {
+  return (
+    <Highlight theme={themes.vsDark} code={code} language="graphql">
+      {({ className, style, tokens, getLineProps, getTokenProps }) => (
+        <pre className={`graphql-highlight ${className}`} style={style}>
+          {tokens.map((line, i) => (
+            <div key={i} {...getLineProps({ line })}>
+              {line.map((token, key) => (
+                <span key={key} {...getTokenProps({ token })} />
+              ))}
+            </div>
+          ))}
+        </pre>
+      )}
+    </Highlight>
+  );
+}
+
+function JsonHighlight({ code }: { code: string }) {
+  return (
+    <Highlight theme={themes.vsDark} code={code} language="json">
+      {({ className, style, tokens, getLineProps, getTokenProps }) => (
+        <pre className={`graphql-highlight ${className}`} style={style}>
+          {tokens.map((line, i) => (
+            <div key={i} {...getLineProps({ line })}>
+              {line.map((token, key) => (
+                <span key={key} {...getTokenProps({ token })} />
+              ))}
+            </div>
+          ))}
+        </pre>
+      )}
+    </Highlight>
+  );
+}
+
+/** Renders the request body with syntax highlighting when applicable. */
+function RequestBodyContent({ body }: { body: string }) {
+  const gql = useMemo(() => parseGraphQLBody(body), [body]);
+
+  if (gql) {
+    return (
+      <div className="gql-body-wrap">
+        <GraphQLHighlight code={gql.query} />
+        {gql.variables !== undefined && (
+          <details className="gql-variables">
+            <summary>Variables</summary>
+            <JsonHighlight code={JSON.stringify(gql.variables, null, 2)} />
+          </details>
+        )}
+      </div>
+    );
+  }
+
+  return <pre className="request-body">{body}</pre>;
+}
 
 function formatBytes(content: string): string {
   const size = new TextEncoder().encode(content).length;
@@ -72,6 +162,37 @@ function CollapsiblePanel({
   );
 }
 
+// Compact inline collapsible used inside a panel body (no card border).
+function InlineCollapsible({
+  title,
+  badge,
+  defaultOpen = true,
+  children,
+}: {
+  title: string;
+  badge?: React.ReactNode;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div className={`inline-collapsible${open ? ' open' : ''}`}>
+      <button
+        type="button"
+        className="inline-collapsible-header"
+        onClick={() => setOpen(v => !v)}
+        aria-expanded={open}
+      >
+        <span className="collapsible-arrow">{open ? '▾' : '▸'}</span>
+        <span className="inline-collapsible-title">{title}</span>
+        {badge && <span className="collapsible-badge-muted">{badge}</span>}
+      </button>
+      {open && <div className="inline-collapsible-body">{children}</div>}
+    </div>
+  );
+}
+
 function StatusBadge({ status }: { status?: number }) {
   return <span className={`status-badge ${getStatusClass(status)}`}>{status ?? '—'}</span>;
 }
@@ -106,15 +227,37 @@ function RegionDetails({ region }: { region: ProcessedRegion }) {
             <span className="request-method">{region.request.method ?? 'REQUEST'}</span>
             <span className="request-url">{region.request.url ?? 'No URL available'}</span>
           </div>
-          {region.request.body && <pre className="request-body">{region.request.body}</pre>}
+          {Object.keys(region.request.headers ?? {}).length > 0 && (
+            <InlineCollapsible
+              title="Headers"
+              badge={Object.keys(region.request.headers).length}
+              defaultOpen={false}
+            >
+              <table className="headers-table">
+                <tbody>
+                  {Object.entries(region.request.headers).map(([key, value]) => (
+                    <tr key={key}>
+                      <td className="header-key">{key}</td>
+                      <td className="header-value">{Array.isArray(value) ? value.join(', ') : value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </InlineCollapsible>
+          )}
+          {region.request.body && (
+            <InlineCollapsible title="Body" defaultOpen={true}>
+              <RequestBodyContent body={region.request.body} />
+            </InlineCollapsible>
+          )}
         </CollapsiblePanel>
       )}
 
       {response ? (
         <>
-          {/* Headers collapsed by default */}
+          {/* Response headers — collapsed by default */}
           <CollapsiblePanel
-            title="Headers"
+            title="Response Headers"
             badge={<span className="collapsible-badge-muted">{Object.keys(response.headers).length}</span>}
             defaultOpen={false}
           >

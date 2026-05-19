@@ -101,6 +101,16 @@ function serializeBody(body: unknown): string {
   if (Buffer.isBuffer(body)) {
     return body.toString('utf-8');
   }
+  if (Array.isArray(body)) {
+    // httpyac stores multi-line bodies as (string | Buffer)[] before sending
+    return body
+      .map(line => {
+        if (typeof line === 'string') return line;
+        if (Buffer.isBuffer(line)) return line.toString('utf-8');
+        return '';
+      })
+      .join('\n');
+  }
   if (body == null) {
     return '';
   }

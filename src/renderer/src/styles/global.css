@@ -608,6 +608,25 @@ button {
   color: var(--accent-red);
 }
 
+/* ── GraphQL syntax inside .http files ── */
+.cm-editor .cm-gql-keyword {
+  color: #c792ea; /* purple — query/mutation/subscription/fragment */
+  font-weight: 700;
+}
+
+.cm-editor .cm-gql-name {
+  color: #82aaff; /* blue — operation name e.g. GetUserSessions */
+  font-style: italic;
+}
+
+.cm-editor .cm-gql-field {
+  color: #89ddff; /* cyan — field names */
+}
+
+.cm-editor .cm-gql-arg {
+  color: #f07178; /* red-orange — argument names */
+}
+
 .env-selector {
   position: relative;
   display: inline-flex;
@@ -814,6 +833,41 @@ button {
   padding: 14px;
 }
 
+/* ── Inline collapsible (inside a panel body) ─────── */
+
+.inline-collapsible {
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.inline-collapsible-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.1s;
+}
+
+.inline-collapsible-header:hover {
+  color: var(--text-primary);
+}
+
+.inline-collapsible-title {
+  flex: 1;
+}
+
+.inline-collapsible-body {
+  padding-bottom: 4px;
+}
+
 .response-summary {
   display: flex;
   align-items: center;
@@ -893,6 +947,11 @@ button {
   border-collapse: collapse;
 }
 
+.headers-table-inset {
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
 .headers-table td {
   padding: 10px 14px;
   border-top: 1px solid var(--border);
@@ -926,6 +985,38 @@ button {
   padding: 14px;
   max-height: 320px;
   overflow: auto;
+}
+
+/* ── GraphQL / syntax highlighting ── */
+.graphql-highlight {
+  margin: 0;
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 14px !important;
+  max-height: 400px;
+  overflow: auto;
+  white-space: pre;
+}
+
+.gql-body-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gql-variables summary {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px 0;
+  user-select: none;
+}
+
+.gql-variables summary:hover {
+  color: var(--text-primary);
 }
 
 .timings-grid {
