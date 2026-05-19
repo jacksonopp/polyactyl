@@ -1,0 +1,58 @@
+{
+  "name": "polyactl",
+  "version": "0.1.0",
+  "description": "Polyactl — desktop HTTP client powered by httpYac",
+  "private": true,
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "build:mac": "npm run build && electron-builder --mac",
+    "build:win": "npm run build && electron-builder --win",
+    "build:linux": "npm run build && electron-builder --linux"
+  },
+  "dependencies": {
+    "httpyac": "^6.16.7"
+  },
+  "devDependencies": {
+    "@codemirror/lang-javascript": "^6.2.2",
+    "@codemirror/lang-json": "^6.0.1",
+    "@codemirror/state": "^6.4.1",
+    "@codemirror/theme-one-dark": "^6.1.2",
+    "@codemirror/view": "^6.24.1",
+    "@lezer/highlight": "^1.2.1",
+    "@types/node": "^22.8.1",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "electron": "^31.0.0",
+    "electron-builder": "^25.0.0",
+    "electron-vite": "^2.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "zustand": "^5.0.0"
+  },
+  "build": {
+    "appId": "com.polyactl.app",
+    "productName": "Polyactl",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": ["out/**/*"],
+    "mac": {
+      "target": "dmg",
+      "icon": "polyactl.png"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "polyactl.png"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "polyactl.png"
+    }
+  }
+}
