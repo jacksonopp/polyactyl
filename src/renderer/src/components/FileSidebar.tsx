@@ -687,6 +687,18 @@ export function FileSidebar() {
     [setFileTree, setLoadingDirectory]
   );
 
+  // Restore last opened directory on mount.
+  useEffect(() => {
+    if (rootDirectory) return; // already set (e.g. hot-reload)
+    window.httpyacAPI.getPreference('lastDirectory').then(saved => {
+      if (typeof saved === 'string' && saved) {
+        setRootDirectory(saved);
+        doRefreshTree(saved);
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Filter the raw tree client-side based on the toggle — no filesystem re-read.
   const displayTree = useMemo(
     () => (showEmptyDirs ? fileTree : filterToHttpDirs(fileTree)),
@@ -712,6 +724,7 @@ export function FileSidebar() {
     const selectedPath = await window.httpyacAPI.openDialog();
     if (!selectedPath) return;
     setRootDirectory(selectedPath);
+    window.httpyacAPI.setPreference('lastDirectory', selectedPath);
     await doRefreshTree(selectedPath);
   };
 
@@ -721,7 +734,9 @@ export function FileSidebar() {
     const content = await window.httpyacAPI.readFile(selectedPath);
     const name = fileBaseName(selectedPath);
     openTab(selectedPath, content, inferFileType(name));
-    setRootDirectory(dirName(selectedPath));
+    const dir = dirName(selectedPath);
+    setRootDirectory(dir);
+    window.httpyacAPI.setPreference('lastDirectory', dir);
   };
 
   const handleNewFile = useCallback((dirPath: string) => {

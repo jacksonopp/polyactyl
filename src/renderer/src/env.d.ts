@@ -84,6 +84,8 @@ declare global {
       getEnvironments(filePath: string, content?: string): Promise<string[]>;
       send(args: SendArgs): Promise<ProcessedRegion[]>;
       onSendProgress(callback: (data: SendProgressEvent) => void): () => void;
+      getPreference(key: string): Promise<unknown>;
+      setPreference(key: string, value: unknown): Promise<void>;
     };
   }
 }

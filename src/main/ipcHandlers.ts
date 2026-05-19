@@ -1,4 +1,4 @@
-import { BrowserWindow, clipboard, dialog, ipcMain, shell } from 'electron';
+import { BrowserWindow, app, clipboard, dialog, ipcMain, shell } from 'electron';
 import { promises as fs } from 'fs';
 import { dirname, join } from 'path';
 
@@ -235,8 +235,35 @@ function handle<TArgs, TResult>(channel: string, listener: (event: Electron.IpcM
   ipcMain.handle(channel, listener);
 }
 
+// ── Preferences (persisted to userData/prefs.json) ────────────────────────
+const prefsPath = join(app.getPath('userData'), 'prefs.json');
+
+async function readPrefs(): Promise<Record<string, unknown>> {
+  try {
+    const raw = await fs.readFile(prefsPath, 'utf-8');
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+async function writePrefs(prefs: Record<string, unknown>): Promise<void> {
+  await fs.writeFile(prefsPath, JSON.stringify(prefs, null, 2), 'utf-8');
+}
+
 export function registerIpcHandlers(): void {
   initProviders();
+
+  handle<{ key: string }, unknown>('prefs:get', async ({ key }) => {
+    const prefs = await readPrefs();
+    return prefs[key] ?? null;
+  });
+
+  handle<{ key: string; value: unknown }, void>('prefs:set', async ({ key, value }) => {
+    const prefs = await readPrefs();
+    prefs[key] = value;
+    await writePrefs(prefs);
+  });
 
   handle<undefined, string | null>('file:openDialog', async () => {
     const result = await dialog.showOpenDialog({

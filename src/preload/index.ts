@@ -41,6 +41,8 @@ const api = {
     ipcRenderer.on('http:send:progress', listener);
     return () => ipcRenderer.removeListener('http:send:progress', listener);
   },
+  getPreference: (key: string): Promise<unknown> => ipcRenderer.invoke('prefs:get', { key }),
+  setPreference: (key: string, value: unknown): Promise<void> => ipcRenderer.invoke('prefs:set', { key, value }),
 };
 
 contextBridge.exposeInMainWorld('httpyacAPI', api);
