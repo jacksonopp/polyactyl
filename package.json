@@ -1,6 +1,6 @@
 {
   "name": "polyactl",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Polyactl — desktop HTTP client powered by httpYac",
   "private": true,
   "main": "out/main/index.js",
@@ -45,7 +45,14 @@
       "out/**/*"
     ],
     "mac": {
-      "target": "dmg",
+      "target": {
+        "target": "dmg",
+        "arch": [
+          "arm64",
+          "x64",
+          "universal"
+        ]
+      },
       "icon": "polyactl.png"
     },
     "win": {
