@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
-import type { ProcessedRegion, SerializedResponse, TestResult } from '../env';
+import type { ProcessedRegion, SerializedResponse } from '../env';
 import { useAppStore } from '../store/appStore';
 
 function formatBytes(content: string): string {
@@ -40,85 +40,40 @@ function getStatusClass(status?: number): string {
   return 'status-red';
 }
 
+// ── CollapsiblePanel ──────────────────────────────────
+
+function CollapsiblePanel({
+  title,
+  badge,
+  defaultOpen = true,
+  children,
+}: {
+  title: string;
+  badge?: React.ReactNode;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <section className={`collapsible-panel${open ? ' open' : ''}`}>
+      <button
+        type="button"
+        className="collapsible-header"
+        onClick={() => setOpen(v => !v)}
+        aria-expanded={open}
+      >
+        <span className="collapsible-arrow">{open ? '▾' : '▸'}</span>
+        <span className="collapsible-title">{title}</span>
+        {badge && <span className="collapsible-badge">{badge}</span>}
+      </button>
+      {open && <div className="collapsible-body">{children}</div>}
+    </section>
+  );
+}
+
 function StatusBadge({ status }: { status?: number }) {
   return <span className={`status-badge ${getStatusClass(status)}`}>{status ?? '—'}</span>;
-}
-
-function HeadersTable({ headers }: { headers: Record<string, string | string[]> }) {
-  const items = Object.entries(headers);
-  if (items.length === 0) {
-    return null;
-  }
-
-  return (
-    <section className="headers-section">
-      <table className="headers-table">
-        <tbody>
-          {items.map(([key, value]) => (
-            <tr key={key}>
-              <td className="header-key">{key}</td>
-              <td className="header-value">{Array.isArray(value) ? value.join(', ') : value}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </section>
-  );
-}
-
-function Timings({ timings }: { timings?: Record<string, number | undefined> }) {
-  const entries = Object.entries(timings ?? {}).filter(([, value]) => typeof value === 'number');
-  if (entries.length === 0) {
-    return null;
-  }
-
-  return (
-    <section className="timings-section">
-      <div className="section-title">Timings</div>
-      <div className="timings-grid">
-        {entries.map(([key, value]) => (
-          <div className="timing-item" key={key}>
-            <span className="timing-label">{key}</span>
-            <span className="timing-value">{Math.round(value ?? 0)} ms</span>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function Tests({ testResults }: { testResults: TestResult[] }) {
-  if (testResults.length === 0) {
-    return null;
-  }
-
-  const statusClass = (status: TestResult['status']) => status.toLowerCase();
-  const statusIcon = (status: TestResult['status']) => {
-    switch (status) {
-      case 'SUCCESS':
-        return '✓';
-      case 'SKIPPED':
-        return '•';
-      default:
-        return '✕';
-    }
-  };
-
-  return (
-    <section className="test-results">
-      <div className="section-title">Tests</div>
-      {testResults.map((test, index) => (
-        <div className={`test-result ${statusClass(test.status)}`} key={`${test.message}-${index}`}>
-          <span className="test-status-icon">{statusIcon(test.status)}</span>
-          <div>
-            <strong>{test.status}</strong>
-            <span className="test-message">{test.message}</span>
-            {test.error?.displayMessage && <span className="test-message">{test.error.displayMessage}</span>}
-          </div>
-        </div>
-      ))}
-    </section>
-  );
 }
 
 function RegionDetails({ region }: { region: ProcessedRegion }) {
@@ -128,43 +83,111 @@ function RegionDetails({ region }: { region: ProcessedRegion }) {
 
   return (
     <div className="region-result">
+      {/* ── Status summary (always visible, not collapsible) ── */}
+      {response && (
+        <section className="response-summary-card">
+          <div className="response-summary">
+            <StatusBadge status={response.statusCode} />
+            <strong>{response.statusMessage || 'Response received'}</strong>
+            <div className="response-meta">
+              <span className="meta-pill">{response.protocol || response.httpVersion || 'HTTP'}</span>
+              <span className="meta-pill">{response.timings?.total ? `${Math.round(response.timings.total)} ms` : `${Math.round(region.duration ?? 0)} ms`}</span>
+              <span className="meta-pill">{responseSize}</span>
+              <span className="meta-pill">{Object.keys(response.headers).length} headers</span>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Request ── */}
       {region.request && (
-        <section className="request-section">
-          <div className="section-title">Request</div>
+        <CollapsiblePanel title="Request" badge={<span className="request-method">{region.request.method ?? 'REQUEST'}</span>}>
           <div className="request-line">
             <span className="request-method">{region.request.method ?? 'REQUEST'}</span>
             <span className="request-url">{region.request.url ?? 'No URL available'}</span>
           </div>
-          {region.request.body ? <pre className="request-body">{region.request.body}</pre> : null}
-        </section>
+          {region.request.body && <pre className="request-body">{region.request.body}</pre>}
+        </CollapsiblePanel>
       )}
 
       {response ? (
         <>
-          <section className="response-summary-card">
-            <div className="response-summary">
-              <StatusBadge status={response.statusCode} />
-              <strong>{response.statusMessage || 'Response received'}</strong>
-              <div className="response-meta">
-                <span className="meta-pill">{response.protocol || response.httpVersion || 'HTTP'}</span>
-                <span className="meta-pill">{response.timings?.total ? `${Math.round(response.timings.total)} ms` : `${Math.round(region.duration ?? 0)} ms`}</span>
-                <span className="meta-pill">{responseSize}</span>
-                <span className="meta-pill">{Object.keys(response.headers).length} headers</span>
-              </div>
-            </div>
-          </section>
-          <HeadersTable headers={response.headers} />
-          <section className="body-section">
-            <div className="section-title">Body</div>
+          {/* Headers collapsed by default */}
+          <CollapsiblePanel
+            title="Headers"
+            badge={<span className="collapsible-badge-muted">{Object.keys(response.headers).length}</span>}
+            defaultOpen={false}
+          >
+            {Object.keys(response.headers).length === 0 ? (
+              <span className="text-muted">No headers</span>
+            ) : (
+              <table className="headers-table">
+                <tbody>
+                  {Object.entries(response.headers).map(([key, value]) => (
+                    <tr key={key}>
+                      <td className="header-key">{key}</td>
+                      <td className="header-value">{Array.isArray(value) ? value.join(', ') : value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </CollapsiblePanel>
+
+          {/* ── Body ── */}
+          <CollapsiblePanel title="Body" badge={<span className="collapsible-badge-muted">{responseSize}</span>}>
             <pre className="body-content">{responseBody || '(empty body)'}</pre>
-          </section>
-          <Timings timings={response.timings} />
+          </CollapsiblePanel>
+
+          {/* Timings collapsed by default */}
+          {response.timings && Object.values(response.timings).some(v => typeof v === 'number') && (
+            <CollapsiblePanel
+              title="Timings"
+              badge={response.timings.total ? <span className="collapsible-badge-muted">{Math.round(response.timings.total)} ms</span> : undefined}
+              defaultOpen={false}
+            >
+              <div className="timings-grid">
+                {Object.entries(response.timings)
+                  .filter(([, v]) => typeof v === 'number')
+                  .map(([key, value]) => (
+                    <div className="timing-item" key={key}>
+                      <span className="timing-label">{key}</span>
+                      <span className="timing-value">{Math.round(value ?? 0)} ms</span>
+                    </div>
+                  ))}
+              </div>
+            </CollapsiblePanel>
+          )}
         </>
       ) : (
         <section className="error-banner">No response was captured for this region.</section>
       )}
 
-      <Tests testResults={region.testResults} />
+      {/* ── Tests ── */}
+      {region.testResults.length > 0 && (
+        <CollapsiblePanel
+          title="Tests"
+          badge={
+            <span className={`collapsible-badge-muted ${region.testResults.every(t => t.status === 'SUCCESS') ? 'badge-green' : 'badge-red'}`}>
+              {region.testResults.filter(t => t.status === 'SUCCESS').length}/{region.testResults.length} passed
+            </span>
+          }
+        >
+          {region.testResults.map((test, index) => {
+            const icon = test.status === 'SUCCESS' ? '✓' : test.status === 'SKIPPED' ? '•' : '✕';
+            return (
+              <div className={`test-result ${test.status.toLowerCase()}`} key={`${test.message}-${index}`}>
+                <span className="test-status-icon">{icon}</span>
+                <div>
+                  <strong>{test.status}</strong>
+                  <span className="test-message">{test.message}</span>
+                  {test.error?.displayMessage && <span className="test-message">{test.error.displayMessage}</span>}
+                </div>
+              </div>
+            );
+          })}
+        </CollapsiblePanel>
+      )}
     </div>
   );
 }
