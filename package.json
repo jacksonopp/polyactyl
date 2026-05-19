@@ -1,6 +1,6 @@
 {
   "name": "polyactl",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "description": "Polyactl — desktop HTTP client powered by httpYac",
   "private": true,
   "main": "out/main/index.js",
