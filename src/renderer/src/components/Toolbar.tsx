@@ -37,7 +37,7 @@ export function Toolbar() {
   return (
     <div className="toolbar">
       <div className="toolbar-left">
-        <span className="toolbar-title">Polyactl</span>
+        <span className="toolbar-title">Polyactyl</span>
       </div>
       <div className="toolbar-center" />
       <div className="toolbar-right">

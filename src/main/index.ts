@@ -4,13 +4,13 @@ import { join } from 'path';
 import { registerIpcHandlers } from './ipcHandlers';
 
 function createWindow(): BrowserWindow {
-  const icon = nativeImage.createFromPath(join(__dirname, '../../polyactl.png'));
+  const icon = nativeImage.createFromPath(join(__dirname, '../../assets/polyactyl.png'));
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    title: 'Polyactl',
+    title: 'Polyactyl',
     icon,
     show: false,
     autoHideMenuBar: true,

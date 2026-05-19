@@ -1,7 +1,7 @@
 {
-  "name": "polyactl",
+  "name": "polyactyl",
   "version": "0.2.5",
-  "description": "Polyactl — desktop HTTP client powered by httpYac",
+  "description": "Polyactyl — desktop HTTP client powered by httpYac",
   "private": true,
   "main": "out/main/index.js",
   "scripts": {
@@ -37,8 +37,8 @@
     "zustand": "^5.0.0"
   },
   "build": {
-    "appId": "com.polyactl.app",
-    "productName": "Polyactl",
+    "appId": "com.polyactyl.app",
+    "productName": "Polyactyl",
     "directories": {
       "output": "dist-electron"
     },
@@ -54,15 +54,15 @@
           "universal"
         ]
       },
-      "icon": "polyactl.png"
+      "icon": "assets/polyactyl.png"
     },
     "win": {
       "target": "nsis",
-      "icon": "polyactl.png"
+      "icon": "assets/polyactyl.png"
     },
     "linux": {
       "target": "AppImage",
-      "icon": "polyactl.png"
+      "icon": "assets/polyactyl.png"
     }
   }
 }
