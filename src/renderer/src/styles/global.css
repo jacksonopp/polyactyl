@@ -264,8 +264,22 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 14px 12px;
+  padding: 10px 10px 10px 14px;
   border-bottom: 1px solid var(--border);
+  gap: 6px;
+  min-height: 0;
+}
+
+.sidebar-folder-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .sidebar-title-wrap {
@@ -288,9 +302,16 @@ button {
   white-space: nowrap;
 }
 
-.sidebar-actions {
+.sidebar-actions,
+.sidebar-actions-right {
   display: flex;
-  gap: 8px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.sidebar-actions .icon-button,
+.sidebar-actions-right .icon-button {
+  font-size: 18px;
 }
 
 .file-tree {
@@ -419,19 +440,51 @@ button {
 }
 
 /* ── Tab bar ──────────────────────────────────────── */
+.tab-bar-wrap {
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  min-height: 0;
+}
+
 .tab-bar {
   display: flex;
   align-items: stretch;
   overflow-x: auto;
   overflow-y: hidden;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
   scrollbar-width: none;
 }
 
 .tab-bar::-webkit-scrollbar {
   display: none;
+}
+
+.tab-scroll-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  font-size: 18px;
+  border-right: 1px solid var(--border);
+  transition: background 0.1s, color 0.1s;
+  cursor: pointer;
+}
+
+.tab-scroll-btn:last-child {
+  border-right: none;
+  border-left: 1px solid var(--border);
+}
+
+.tab-scroll-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .tab {

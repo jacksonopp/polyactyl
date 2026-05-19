@@ -43,6 +43,10 @@ interface AppState {
   closeTabByPath: (path: string) => void;
   closeTabsUnderPath: (pathPrefix: string) => void;
   updateTabsUnderPath: (oldPrefix: string, newPrefix: string) => void;
+  closeOtherTabs: (keepIndex: number) => void;
+  closeTabsToRight: (index: number) => void;
+  closeTabsToLeft: (index: number) => void;
+  closeAllTabs: () => void;
 
   setEnvironments: (envs: string[]) => void;
   setActiveEnvironment: (envs: string[]) => void;
@@ -141,6 +145,26 @@ export const useAppStore = create<AppState>((set, get) => ({
         return t;
       }),
     })),
+
+  closeOtherTabs: keepIndex =>
+    set(state => ({
+      tabs: [state.tabs[keepIndex]].filter(Boolean),
+      activeTabIndex: 0,
+    })),
+
+  closeTabsToRight: index =>
+    set(state => {
+      const next = state.tabs.slice(0, index + 1);
+      return { tabs: next, activeTabIndex: Math.min(state.activeTabIndex, next.length - 1) };
+    }),
+
+  closeTabsToLeft: index =>
+    set(state => {
+      const next = state.tabs.slice(index);
+      return { tabs: next, activeTabIndex: 0 };
+    }),
+
+  closeAllTabs: () => set({ tabs: [], activeTabIndex: 0 }),
 
   setEnvironments: envs =>
     set(state => ({

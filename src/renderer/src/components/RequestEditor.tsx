@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import ReactDOM from 'react-dom';
 
 import { javascript } from '@codemirror/lang-javascript';
 import { json } from '@codemirror/lang-json';
@@ -131,37 +132,178 @@ function basename(path: string): string {
   return path.split(/[\\/]/u).pop() ?? path;
 }
 
+// ── Tab context menu ──────────────────────────────────
+
+type TabMenuItem =
+  | { separator: true }
+  | { label: string; onClick: () => void; disabled?: boolean; danger?: boolean };
+
+function TabContextMenu({
+  x, y, items, onClose,
+}: { x: number; y: number; items: TabMenuItem[]; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; visible: boolean }>({ top: y, left: x, visible: false });
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const { offsetWidth: w, offsetHeight: h } = ref.current;
+    setPos({
+      top: y + h > window.innerHeight ? Math.max(0, y - h) : y,
+      left: x + w > window.innerWidth ? Math.max(0, x - w) : x,
+      visible: true,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: PointerEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
+  }, [onClose]);
+
+  return ReactDOM.createPortal(
+    <div
+      ref={ref}
+      className="context-menu"
+      style={{ top: pos.top, left: pos.left, visibility: pos.visible ? 'visible' : 'hidden' }}
+      onContextMenu={e => e.preventDefault()}
+    >
+      {items.map((item, i) =>
+        item.separator ? (
+          <div key={i} className="context-menu-separator" />
+        ) : (
+          <button
+            key={item.label}
+            className={`context-menu-item${item.danger ? ' context-menu-item-danger' : ''}`}
+            disabled={item.disabled}
+            onClick={() => { item.onClick(); onClose(); }}
+          >
+            {item.label}
+          </button>
+        )
+      )}
+    </div>,
+    document.body
+  );
+}
+
+// ── TabBar ────────────────────────────────────────────
+
 function TabBar() {
   const tabs = useAppStore(state => state.tabs);
   const activeTabIndex = useAppStore(state => state.activeTabIndex);
   const setActiveTabIndex = useAppStore(state => state.setActiveTabIndex);
   const closeTab = useAppStore(state => state.closeTab);
+  const closeOtherTabs = useAppStore(state => state.closeOtherTabs);
+  const closeTabsToRight = useAppStore(state => state.closeTabsToRight);
+  const closeTabsToLeft = useAppStore(state => state.closeTabsToLeft);
+  const closeAllTabs = useAppStore(state => state.closeAllTabs);
+
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; index: number } | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const activeTabRef = useRef<HTMLDivElement>(null);
+
+  const updateScrollState = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  };
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', updateScrollState, { passive: true });
+    const ro = new ResizeObserver(updateScrollState);
+    ro.observe(el);
+    updateScrollState();
+
+    // Remap vertical wheel to horizontal scroll.
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY === 0) return;
+      e.preventDefault();
+      el.scrollBy({ left: e.deltaY, behavior: 'auto' });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+
+    return () => {
+      el.removeEventListener('scroll', updateScrollState);
+      el.removeEventListener('wheel', onWheel);
+      ro.disconnect();
+    };
+  }, []);
+
+  // Scroll active tab into view whenever it changes.
+  useEffect(() => {
+    activeTabRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+    setTimeout(updateScrollState, 300);
+  }, [activeTabIndex]);
+
+  const scroll = (dir: 'left' | 'right') => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir === 'left' ? -120 : 120, behavior: 'smooth' });
+  };
 
   if (tabs.length === 0) return null;
 
+  const menuItems = (index: number): TabMenuItem[] => [
+    { label: 'Close', onClick: () => closeTab(index) },
+    { label: 'Close Others', onClick: () => closeOtherTabs(index), disabled: tabs.length <= 1 },
+    { label: 'Close to the Left', onClick: () => closeTabsToLeft(index), disabled: index === 0 },
+    { label: 'Close to the Right', onClick: () => closeTabsToRight(index), disabled: index === tabs.length - 1 },
+    { separator: true },
+    { label: 'Close All', onClick: () => closeAllTabs(), danger: true },
+    { separator: true },
+    { label: 'Copy Path', onClick: () => void navigator.clipboard.writeText(tabs[index].path) },
+    { label: 'Show in Finder', onClick: () => void window.httpyacAPI.revealInFinder(tabs[index].path) },
+  ];
+
   return (
-    <div className="tab-bar">
-      {tabs.map((tab, index) => (
-        <div
-          key={tab.path}
-          className={`tab${index === activeTabIndex ? ' active' : ''}`}
-          onClick={() => setActiveTabIndex(index)}
-          role="tab"
-          tabIndex={0}
-          onKeyDown={e => { if (e.key === 'Enter') setActiveTabIndex(index); }}
-          title={tab.path}
-        >
-          <span className="tab-label">{basename(tab.path)}</span>
-          <button
-            className="tab-close"
-            type="button"
-            onClick={e => { e.stopPropagation(); closeTab(index); }}
-            title="Close tab"
+    <div className="tab-bar-wrap">
+      {canScrollLeft && (
+        <button className="tab-scroll-btn" onClick={() => scroll('left')} title="Scroll left">‹</button>
+      )}
+      <div className="tab-bar" ref={scrollRef}>
+        {tabs.map((tab, index) => (
+          <div
+            key={tab.path}
+            ref={index === activeTabIndex ? activeTabRef : undefined}
+            className={`tab${index === activeTabIndex ? ' active' : ''}`}
+            onClick={() => setActiveTabIndex(index)}
+            onContextMenu={e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, index }); }}
+            role="tab"
+            tabIndex={0}
+            onKeyDown={e => { if (e.key === 'Enter') setActiveTabIndex(index); }}
+            title={tab.path}
           >
-            ×
-          </button>
-        </div>
-      ))}
+            <span className="tab-label">{basename(tab.path)}</span>
+            <button
+              className="tab-close"
+              type="button"
+              onClick={e => { e.stopPropagation(); closeTab(index); }}
+              title="Close tab"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+      {canScrollRight && (
+        <button className="tab-scroll-btn" onClick={() => scroll('right')} title="Scroll right">›</button>
+      )}
+      {contextMenu && (
+        <TabContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          items={menuItems(contextMenu.index)}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   );
 }

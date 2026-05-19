@@ -850,34 +850,34 @@ export function FileSidebar() {
     [handleNewFile, handleDeleteFile, handleMoveFile, handleRenameEntry, handleDuplicateFile, handleRevealInFinder, draggingPath]
   );
 
+  const [sidebarMenu, setSidebarMenu] = useState<{ x: number; y: number } | null>(null);
+
+  const sidebarMenuItems: ContextMenuItem[] = [
+    { label: 'Open folder…', icon: '📁', onClick: () => void handleOpenFolder() },
+    { label: 'Open file…', icon: '📄', onClick: () => void handleOpenFile() },
+    { separator: true },
+    {
+      label: showEmptyDirs ? 'Hide empty folders' : 'Show empty folders',
+      icon: showEmptyDirs ? '◉' : '◎',
+      onClick: () => setShowEmptyDirs(!showEmptyDirs),
+    },
+  ];
+
   return (
     <FileTreeContext.Provider value={treeContextValue}>
       <div className="file-sidebar">
         <div className="sidebar-header">
-          <div className="sidebar-title-wrap">
-            <span className="sidebar-title">HTTP files</span>
-            <span className="sidebar-subtitle">
-              {isLoadingDirectory ? 'Loading…' : rootDirectory ? fileBaseName(rootDirectory) : 'No folder selected'}
-            </span>
-          </div>
           <div className="sidebar-actions">
-            <button
-              className={`icon-button${showEmptyDirs ? ' icon-button-active' : ''}`}
-              type="button"
-              onClick={() => setShowEmptyDirs(!showEmptyDirs)}
-              title={showEmptyDirs ? 'Hide empty directories' : 'Show empty directories'}
-              disabled={isLoadingDirectory}
-            >
-              {showEmptyDirs ? '◉' : '◎'}
-            </button>
             <button
               className="icon-button"
               type="button"
-              onClick={() => setShowCommandPalette(true)}
-              title="Search files (⌘K)"
-              disabled={allFiles.length === 0}
+              title="More actions"
+              onClick={e => {
+                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                setSidebarMenu({ x: rect.left, y: rect.bottom + 4 });
+              }}
             >
-              ⌕
+              ⋮
             </button>
             <button
               className="icon-button"
@@ -888,23 +888,19 @@ export function FileSidebar() {
             >
               +
             </button>
+          </div>
+          <span className="sidebar-folder-name" title={rootDirectory ?? undefined}>
+            {isLoadingDirectory ? 'Loading…' : rootDirectory ? fileBaseName(rootDirectory) : 'No folder open'}
+          </span>
+          <div className="sidebar-actions-right">
             <button
               className="icon-button"
               type="button"
-              onClick={() => void handleOpenFolder()}
-              title="Open folder"
-              disabled={isLoadingDirectory}
+              onClick={() => setShowCommandPalette(true)}
+              title="Search files (⌘K)"
+              disabled={allFiles.length === 0}
             >
-              📁
-            </button>
-            <button
-              className="icon-button"
-              type="button"
-              onClick={() => void handleOpenFile()}
-              title="Open file"
-              disabled={isLoadingDirectory}
-            >
-              📄
+              ⌕
             </button>
           </div>
         </div>
@@ -950,6 +946,15 @@ export function FileSidebar() {
             rootDir={rootDirectory}
             onOpen={entry => void handleCommandPaletteOpen(entry)}
             onClose={() => setShowCommandPalette(false)}
+          />
+        )}
+
+        {sidebarMenu && (
+          <ContextMenu
+            x={sidebarMenu.x}
+            y={sidebarMenu.y}
+            items={sidebarMenuItems}
+            onClose={() => setSidebarMenu(null)}
           />
         )}
       </div>
