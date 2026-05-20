@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   version-bump:
     runs-on: ubuntu-latest
@@ -41,6 +44,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # macOS — one job builds arm64, x64, and universal DMGs simultaneously
           - os: macos-latest
             script: build:mac
             artifact-glob: dist-electron/*.dmg
@@ -68,7 +72,7 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install dependencies (Linux — need electron deps)
+      - name: Install system deps (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
@@ -85,7 +89,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: false
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact-name }}

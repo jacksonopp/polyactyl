@@ -54,15 +54,18 @@
           "universal"
         ]
       },
-      "icon": "assets/polyactyl.png"
+      "icon": "assets/polyactyl.png",
+      "artifactName": "${productName}-${version}-mac-${arch}.${ext}"
     },
     "win": {
       "target": "nsis",
-      "icon": "assets/polyactyl.png"
+      "icon": "assets/polyactyl.png",
+      "artifactName": "${productName}-${version}-win.${ext}"
     },
     "linux": {
       "target": "AppImage",
-      "icon": "assets/polyactyl.png"
+      "icon": "assets/polyactyl.png",
+      "artifactName": "${productName}-${version}-linux.${ext}"
     }
   }
 }
