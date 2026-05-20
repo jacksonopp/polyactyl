@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import type { FileEntry, FileType, ProcessedRegion } from '../env';
+import type { FileEntry, FileType, GitStatus, ProcessedRegion } from '../env';
 
 export interface Tab {
   path: string;
@@ -29,6 +29,11 @@ interface AppState {
   activeRegionIndex: number;
   lastError: string | null;
 
+  // Git
+  gitStatus: GitStatus | null;
+  isGitRepo: boolean;
+  gitLoading: boolean;
+
   // Actions
   setRootDirectory: (path: string | null) => void;
   setFileTree: (tree: FileEntry[]) => void;
@@ -55,6 +60,10 @@ interface AppState {
   setActiveRegionIndex: (index: number) => void;
   setLastError: (message: string | null) => void;
   clearResponses: () => void;
+
+  setGitStatus: (status: GitStatus | null) => void;
+  setIsGitRepo: (isRepo: boolean) => void;
+  setGitLoading: (loading: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -70,6 +79,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   processedRegions: [],
   activeRegionIndex: 0,
   lastError: null,
+  gitStatus: null,
+  isGitRepo: false,
+  gitLoading: false,
 
   setRootDirectory: path => set({ rootDirectory: path }),
   setFileTree: tree => set({ fileTree: tree }),
@@ -182,5 +194,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   setActiveRegionIndex: index => set({ activeRegionIndex: index }),
   setLastError: message => set({ lastError: message }),
   clearResponses: () => set({ processedRegions: [], activeRegionIndex: 0, lastError: null }),
+
+  setGitStatus: status => set({ gitStatus: status }),
+  setIsGitRepo: isRepo => set({ isGitRepo: isRepo }),
+  setGitLoading: loading => set({ gitLoading: loading }),
 }));
 

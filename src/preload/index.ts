@@ -48,6 +48,17 @@ const api = {
     ipcRenderer.on('git:branchChanged', listener);
     return () => ipcRenderer.removeListener('git:branchChanged', listener);
   },
+  gitStatus: (dirPath: string) => ipcRenderer.invoke('git:status', dirPath),
+  gitBranches: (dirPath: string): Promise<string[]> => ipcRenderer.invoke('git:branches', dirPath),
+  gitCheckout: (dirPath: string, branch: string): Promise<void> => ipcRenderer.invoke('git:checkout', { dirPath, branch }),
+  gitCheckoutNew: (dirPath: string, branch: string): Promise<void> => ipcRenderer.invoke('git:checkoutNew', { dirPath, branch }),
+  gitFetch: (dirPath: string): Promise<void> => ipcRenderer.invoke('git:fetch', dirPath),
+  gitPull: (dirPath: string): Promise<void> => ipcRenderer.invoke('git:pull', dirPath),
+  gitPush: (dirPath: string): Promise<void> => ipcRenderer.invoke('git:push', dirPath),
+  gitPushSetUpstream: (dirPath: string): Promise<void> => ipcRenderer.invoke('git:pushSetUpstream', dirPath),
+  gitStage: (dirPath: string, files: string[]): Promise<void> => ipcRenderer.invoke('git:stage', { dirPath, files }),
+  gitStageAll: (dirPath: string): Promise<void> => ipcRenderer.invoke('git:stageAll', { dirPath }),
+  gitCommit: (dirPath: string, message: string, push: boolean): Promise<void> => ipcRenderer.invoke('git:commit', { dirPath, message, push }),
 };
 
 contextBridge.exposeInMainWorld('httpyacAPI', api);

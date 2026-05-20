@@ -8,6 +8,15 @@ export type FileEntry = {
   children?: FileEntry[];
 };
 
+export type GitStatus = {
+  branch: string;
+  ahead: number;
+  behind: number;
+  staged: string[];
+  unstaged: string[];
+  untracked: string[];
+};
+
 export type SerializedResponse = {
   statusCode?: number;
   statusMessage?: string;
@@ -87,6 +96,17 @@ declare global {
       getPreference(key: string): Promise<unknown>;
       setPreference(key: string, value: unknown): Promise<void>;
       onGitBranchChanged(callback: () => void): () => void;
+      gitStatus(dirPath: string): Promise<GitStatus>;
+      gitBranches(dirPath: string): Promise<string[]>;
+      gitCheckout(dirPath: string, branch: string): Promise<void>;
+      gitCheckoutNew(dirPath: string, branch: string): Promise<void>;
+      gitFetch(dirPath: string): Promise<void>;
+      gitPull(dirPath: string): Promise<void>;
+      gitPush(dirPath: string): Promise<void>;
+      gitPushSetUpstream(dirPath: string): Promise<void>;
+      gitStage(dirPath: string, files: string[]): Promise<void>;
+      gitStageAll(dirPath: string): Promise<void>;
+      gitCommit(dirPath: string, message: string, push: boolean): Promise<void>;
     };
   }
 }

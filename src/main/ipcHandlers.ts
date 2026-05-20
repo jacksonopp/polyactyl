@@ -1,8 +1,66 @@
 import { BrowserWindow, app, clipboard, dialog, ipcMain, shell } from 'electron';
+import { execFile } from 'child_process';
 import { promises as fs, watch as fsWatch } from 'fs';
 import { dirname, join } from 'path';
+import { promisify } from 'util';
 
 import * as httpyac from 'httpyac';
+
+const execFileAsync = promisify(execFile);
+
+// Run a git command in a given directory using execFile (no shell interpolation).
+async function git(cwd: string, ...args: string[]): Promise<string> {
+  const { stdout } = await execFileAsync('git', args, { cwd });
+  return stdout.trim();
+}
+
+export interface GitStatus {
+  branch: string;
+  ahead: number;
+  behind: number;
+  staged: string[];
+  unstaged: string[];
+  untracked: string[];
+}
+
+async function getGitStatus(dirPath: string): Promise<GitStatus> {
+  // Walk up to find git root
+  let cwd = dirPath;
+  while (true) {
+    try {
+      await fs.access(join(cwd, '.git'));
+      break;
+    } catch {
+      const parent = dirname(cwd);
+      if (parent === cwd) throw new Error('Not a git repository');
+      cwd = parent;
+    }
+  }
+
+  const branch = await git(cwd, 'rev-parse', '--abbrev-ref', 'HEAD').catch(() => 'HEAD');
+
+  // ahead/behind vs upstream
+  let ahead = 0; let behind = 0;
+  try {
+    const ab = await git(cwd, 'rev-list', '--left-right', '--count', `${branch}@{upstream}...HEAD`);
+    const parts = ab.split(/\s+/);
+    behind = parseInt(parts[0]) || 0;
+    ahead  = parseInt(parts[1]) || 0;
+  } catch { /* no upstream */ }
+
+  // porcelain status
+  const porcelain = await git(cwd, 'status', '--porcelain').catch(() => '');
+  const staged: string[] = [], unstaged: string[] = [], untracked: string[] = [];
+  for (const line of porcelain.split('\n').filter(Boolean)) {
+    const x = line[0], y = line[1], file = line.slice(3);
+    if (line.startsWith('??')) { untracked.push(file); continue; }
+    if (x !== ' ' && x !== '?') staged.push(file);
+    if (y !== ' ' && y !== '?') unstaged.push(file);
+  }
+
+  return { branch, ahead, behind, staged, unstaged, untracked };
+}
+
 
 interface FileEntry {
   name: string;
@@ -442,4 +500,76 @@ export function registerIpcHandlers(): void {
       return processedHttpRegions.map(serializeProcessedRegion);
     }
   );
+
+  // ── Git operations ──────────────────────────────────────────────────────
+
+  handle<string, GitStatus>('git:status', async (_event, dirPath) => getGitStatus(dirPath));
+
+  handle<string, string[]>('git:branches', async (_event, dirPath) => {
+    const raw = await git(dirPath, 'branch', '--sort=-committerdate', '--format=%(refname:short)');
+    return raw.split('\n').filter(Boolean);
+  });
+
+  handle<{ dirPath: string; branch: string }, void>('git:checkout', async (_event, { dirPath, branch }) => {
+    await git(dirPath, 'checkout', branch);
+  });
+
+  handle<{ dirPath: string; branch: string }, void>('git:checkoutNew', async (_event, { dirPath, branch }) => {
+    await git(dirPath, 'checkout', '-b', branch);
+  });
+
+  handle<string, void>('git:pull', async (_event, dirPath) => {
+    await git(dirPath, 'pull');
+  });
+
+  handle<string, void>('git:fetch', async (_event, dirPath) => {
+    await git(dirPath, 'fetch');
+  });
+
+  handle<string, void>('git:push', async (_event, dirPath) => {
+    await git(dirPath, 'push');
+  });
+
+  handle<string, void>('git:pushSetUpstream', async (_event, dirPath) => {
+    const branch = await git(dirPath, 'rev-parse', '--abbrev-ref', 'HEAD');
+    await git(dirPath, 'push', '--set-upstream', 'origin', branch);
+  });
+
+  handle<{ dirPath: string; files: string[] }, void>('git:stage', async (_event, { dirPath, files }) => {
+    // Walk up to find git root for the cwd
+    let cwd = dirPath;
+    while (true) {
+      try { await fs.access(join(cwd, '.git')); break; }
+      catch { const p = dirname(cwd); if (p === cwd) throw new Error('Not a git repo'); cwd = p; }
+    }
+    for (const file of files) {
+      await git(cwd, 'add', '--', JSON.stringify(file).slice(1, -1));
+    }
+  });
+
+  handle<{ dirPath: string; message: string; push: boolean }, void>(
+    'git:commit',
+    async (_event, { dirPath, message, push }) => {
+      let cwd = dirPath;
+      while (true) {
+        try { await fs.access(join(cwd, '.git')); break; }
+        catch { const p = dirname(cwd); if (p === cwd) throw new Error('Not a git repo'); cwd = p; }
+      }
+      await git(cwd, 'commit', '-m', JSON.stringify(message));
+      if (push) {
+        try { await git(cwd, 'push'); }
+        catch { await git(cwd, 'push', '--set-upstream', 'origin',
+          await git(cwd, 'rev-parse', '--abbrev-ref', 'HEAD')); }
+      }
+    }
+  );
+
+  handle<{ dirPath: string; files: string[] }, void>('git:stageAll', async (_event, { dirPath }) => {
+    let cwd = dirPath;
+    while (true) {
+      try { await fs.access(join(cwd, '.git')); break; }
+      catch { const p = dirname(cwd); if (p === cwd) throw new Error('Not a git repo'); cwd = p; }
+    }
+    await git(cwd, 'add', '-A');
+  });
 }

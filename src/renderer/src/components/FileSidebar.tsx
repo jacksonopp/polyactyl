@@ -553,15 +553,21 @@ function FileTreeNode({ entry }: { entry: FileEntry }) {
 
 // ── CommandPalette ────────────────────────────────────
 
+type FileItem = { kind: 'file'; entry: FileEntry };
+type ActionItem = { kind: 'action'; id: string; label: string; description?: string; icon?: string; run: () => void };
+type PaletteItem = FileItem | ActionItem;
+
 interface CommandPaletteProps {
   files: FileEntry[];
   rootDir: string | null;
   onOpen: (entry: FileEntry) => void;
   onClose: () => void;
+  gitActions?: ActionItem[];
+  initialQuery?: string;
 }
 
-function CommandPalette({ files, rootDir, onOpen, onClose }: CommandPaletteProps) {
-  const [query, setQuery] = useState('');
+function CommandPalette({ files, rootDir, onOpen, onClose, gitActions = [], initialQuery = '' }: CommandPaletteProps) {
+  const [query, setQuery] = useState(initialQuery);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const selectedRef = useRef<HTMLDivElement>(null);
@@ -570,13 +576,30 @@ function CommandPalette({ files, rootDir, onOpen, onClose }: CommandPaletteProps
     inputRef.current?.focus();
   }, []);
 
-  const filtered = useMemo(() => {
+  const filtered = useMemo((): PaletteItem[] => {
     const q = query.toLowerCase();
-    if (!q) return files.slice(0, 50);
+    // Git actions first if query starts with '>'
+    const showGitOnly = q.startsWith('>');
+    const gitQ = showGitOnly ? q.slice(1).trim() : q;
+
+    const matchedActions: ActionItem[] = gitActions
+      .filter(a =>
+        !gitQ ||
+        a.label.toLowerCase().includes(gitQ) ||
+        (a.description?.toLowerCase().includes(gitQ) ?? false)
+      )
+      .map(a => ({ kind: 'action', ...a } as ActionItem));
+
+    if (showGitOnly) {
+      return matchedActions.slice(0, 50);
+    }
+
     const nameHits = files.filter(f => f.name.toLowerCase().includes(q));
     const pathOnly = files.filter(f => !f.name.toLowerCase().includes(q) && f.path.toLowerCase().includes(q));
-    return [...nameHits, ...pathOnly].slice(0, 50);
-  }, [files, query]);
+    const fileItems: FileItem[] = [...nameHits, ...pathOnly].slice(0, 50).map(e => ({ kind: 'file', entry: e }));
+
+    return [...matchedActions, ...fileItems].slice(0, 50);
+  }, [files, query, gitActions]);
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -586,6 +609,11 @@ function CommandPalette({ files, rootDir, onOpen, onClose }: CommandPaletteProps
     selectedRef.current?.scrollIntoView({ block: 'nearest' });
   }, [selectedIndex]);
 
+  const handleActivate = (item: PaletteItem) => {
+    if (item.kind === 'file') { onOpen(item.entry); }
+    else { item.run(); onClose(); }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -594,7 +622,8 @@ function CommandPalette({ files, rootDir, onOpen, onClose }: CommandPaletteProps
       e.preventDefault();
       setSelectedIndex(i => Math.max(i - 1, 0));
     } else if (e.key === 'Enter') {
-      if (filtered[selectedIndex]) onOpen(filtered[selectedIndex]);
+      const item = filtered[selectedIndex];
+      if (item) handleActivate(item);
     } else if (e.key === 'Escape') {
       onClose();
     }
@@ -610,39 +639,159 @@ function CommandPalette({ files, rootDir, onOpen, onClose }: CommandPaletteProps
             className="cmd-palette-input"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search files…"
+            placeholder="Search files… (⌘⇧P for commands)"
           />
           <kbd className="cmd-palette-esc">Esc</kbd>
         </div>
         <div className="cmd-palette-results">
           {filtered.length === 0 ? (
-            <div className="cmd-palette-empty">No files match "{query}"</div>
+            <div className="cmd-palette-empty">No results for "{query}"</div>
           ) : (
-            filtered.map((file, i) => (
-              <div
-                key={file.path}
-                ref={i === selectedIndex ? selectedRef : undefined}
-                className={`cmd-palette-item${i === selectedIndex ? ' selected' : ''}`}
-                onClick={() => onOpen(file)}
-                onMouseEnter={() => setSelectedIndex(i)}
-              >
-                <span className={`cmd-palette-icon file-type-${file.fileType ?? 'http'}`}>
-                  {file.fileType === 'config' ? '⚙' : file.fileType === 'env' ? '$' : '●'}
-                </span>
-                <span className="cmd-palette-text">
-                  <span className="cmd-palette-name">{file.name}</span>
-                  <span className="cmd-palette-path">
-                    {rootDir ? relativePath(file.path, rootDir) : file.path}
+            filtered.map((item, i) => {
+              if (item.kind === 'action') {
+                return (
+                  <div
+                    key={item.id}
+                    ref={i === selectedIndex ? selectedRef : undefined}
+                    className={`cmd-palette-item cmd-palette-action${i === selectedIndex ? ' selected' : ''}`}
+                    onClick={() => handleActivate(item)}
+                    onMouseEnter={() => setSelectedIndex(i)}
+                  >
+                    <span className="cmd-palette-icon cmd-palette-action-icon">{item.icon ?? '⚡'}</span>
+                    <span className="cmd-palette-text">
+                      <span className="cmd-palette-name">{item.label}</span>
+                      {item.description && <span className="cmd-palette-path">{item.description}</span>}
+                    </span>
+                  </div>
+                );
+              }
+              const file = item.entry;
+              return (
+                <div
+                  key={file.path}
+                  ref={i === selectedIndex ? selectedRef : undefined}
+                  className={`cmd-palette-item${i === selectedIndex ? ' selected' : ''}`}
+                  onClick={() => handleActivate(item)}
+                  onMouseEnter={() => setSelectedIndex(i)}
+                >
+                  <span className={`cmd-palette-icon file-type-${file.fileType ?? 'http'}`}>
+                    {file.fileType === 'config' ? '⚙' : file.fileType === 'env' ? '$' : '●'}
                   </span>
-                </span>
-              </div>
-            ))
+                  <span className="cmd-palette-text">
+                    <span className="cmd-palette-name">{file.name}</span>
+                    <span className="cmd-palette-path">
+                      {rootDir ? relativePath(file.path, rootDir) : file.path}
+                    </span>
+                  </span>
+                </div>
+              );
+            })
           )}
         </div>
         <div className="cmd-palette-footer">
           <span><kbd>↑↓</kbd> navigate</span>
-          <span><kbd>↵</kbd> open</span>
+          <span><kbd>↵</kbd> open / run</span>
+          <span><kbd>&gt;</kbd> commands</span>
           <span><kbd>Esc</kbd> close</span>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// ── BranchSwitchPalette ───────────────────────────────
+
+function BranchSwitchPalette({ dirPath, onClose }: { dirPath: string; onClose: () => void }) {
+  const [branches, setBranches] = useState<string[]>([]);
+  const [filter, setFilter] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const selectedRef = useRef<HTMLDivElement>(null);
+  const gitStatus = useAppStore(s => s.gitStatus);
+  const setGitStatus = useAppStore(s => s.setGitStatus);
+  const setIsGitRepo = useAppStore(s => s.setIsGitRepo);
+  const setGitLoading = useAppStore(s => s.setGitLoading);
+
+  useEffect(() => {
+    window.httpyacAPI.gitBranches(dirPath)
+      .then(list => { setBranches(list); setLoading(false); })
+      .catch(e => { setError(e.message); setLoading(false); });
+  }, [dirPath]);
+
+  useEffect(() => { inputRef.current?.focus(); }, [loading]);
+
+  const filtered = useMemo(() =>
+    branches.filter(b => b.toLowerCase().includes(filter.toLowerCase())),
+    [branches, filter]
+  );
+
+  useEffect(() => { setSelectedIndex(0); }, [filter]);
+  useEffect(() => { selectedRef.current?.scrollIntoView({ block: 'nearest' }); }, [selectedIndex]);
+
+  const handleCheckout = async (branch: string) => {
+    if (branch === gitStatus?.branch) { onClose(); return; }
+    setGitLoading(true);
+    try {
+      await window.httpyacAPI.gitCheckout(dirPath, branch);
+      const status = await window.httpyacAPI.gitStatus(dirPath);
+      setGitStatus(status);
+      setIsGitRepo(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setGitLoading(false);
+      onClose();
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIndex(i => Math.min(i + 1, filtered.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIndex(i => Math.max(i - 1, 0)); }
+    else if (e.key === 'Enter' && filtered[selectedIndex]) void handleCheckout(filtered[selectedIndex]);
+    else if (e.key === 'Escape') onClose();
+  };
+
+  return ReactDOM.createPortal(
+    <div className="cmd-palette-overlay" onClick={onClose}>
+      <div className="cmd-palette" onClick={e => e.stopPropagation()} onKeyDown={handleKeyDown}>
+        <div className="cmd-palette-search">
+          <span className="cmd-palette-search-icon">⑂</span>
+          <input
+            ref={inputRef}
+            className="cmd-palette-input"
+            placeholder="Switch to branch…"
+            value={filter}
+            onChange={e => setFilter(e.target.value)}
+          />
+          <kbd className="cmd-palette-esc">Esc</kbd>
+        </div>
+        <div className="cmd-palette-results">
+          {loading && <div className="cmd-palette-empty">Loading branches…</div>}
+          {error && <div className="cmd-palette-empty">Error: {error}</div>}
+          {!loading && filtered.map((b, i) => (
+            <div
+              key={b}
+              ref={i === selectedIndex ? selectedRef : undefined}
+              className={`cmd-palette-item${i === selectedIndex ? ' selected' : ''}`}
+              onClick={() => void handleCheckout(b)}
+              onMouseEnter={() => setSelectedIndex(i)}
+            >
+              <span className="cmd-palette-icon cmd-palette-action-icon">⑂</span>
+              <span className="cmd-palette-text">
+                <span className="cmd-palette-name">{b}</span>
+                {b === gitStatus?.branch && <span className="cmd-palette-path">current</span>}
+              </span>
+            </div>
+          ))}
+          {!loading && filtered.length === 0 && <div className="cmd-palette-empty">No branches match</div>}
+        </div>
+        <div className="cmd-palette-footer">
+          <span><kbd>↑↓</kbd> navigate</span>
+          <span><kbd>↵</kbd> switch</span>
+          <span><kbd>Esc</kbd> cancel</span>
         </div>
       </div>
     </div>,
@@ -668,10 +817,31 @@ export function FileSidebar() {
   const closeTabByPath = useAppStore(state => state.closeTabByPath);
   const closeTabsUnderPath = useAppStore(state => state.closeTabsUnderPath);
 
+  const gitStatus = useAppStore(state => state.gitStatus);
+  const isGitRepo = useAppStore(state => state.isGitRepo);
+  const setGitStatus = useAppStore(state => state.setGitStatus);
+  const setIsGitRepo = useAppStore(state => state.setIsGitRepo);
+  const setGitLoading = useAppStore(state => state.setGitLoading);
+
   const [draggingPath, setDraggingPath] = useState<string | null>(null);
   const [newFileModalDir, setNewFileModalDir] = useState<string | null>(null);
   const [newFileError, setNewFileError] = useState<string | null>(null);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [commandPaletteInitialQuery, setCommandPaletteInitialQuery] = useState('');
+
+  const refreshGitStatus = useCallback(async (dir: string) => {
+    setGitLoading(true);
+    try {
+      const status = await window.httpyacAPI.gitStatus(dir);
+      setGitStatus(status);
+      setIsGitRepo(true);
+    } catch {
+      setGitStatus(null);
+      setIsGitRepo(false);
+    } finally {
+      setGitLoading(false);
+    }
+  }, [setGitStatus, setIsGitRepo, setGitLoading]);
 
   // Always load the FULL tree (includeEmptyDirs: true).
   // Client-side filtering via useMemo makes the show/hide toggle instant.
@@ -709,11 +879,23 @@ export function FileSidebar() {
   // Flat list of all files for the command palette (uses raw tree to include all files).
   const allFiles = useMemo(() => flattenTree(fileTree), [fileTree]);
 
-  // Global Cmd+K / Ctrl+K shortcut to open command palette.
+  // Global Cmd+P / Ctrl+P → command palette (files)
+  // Cmd+Shift+P / Ctrl+Shift+P → command palette in actions mode (prefilled with >)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      const modKey = e.metaKey || e.ctrlKey;
+      if (modKey && e.key === 'p' && e.shiftKey) {
         e.preventDefault();
+        setCommandPaletteInitialQuery('>');
+        setShowCommandPalette(true);
+      } else if (modKey && e.key === 'p' && !e.shiftKey) {
+        e.preventDefault();
+        setCommandPaletteInitialQuery('');
+        setShowCommandPalette(true);
+      } else if (modKey && e.key === 'k') {
+        // Keep Cmd+K as alias for files palette
+        e.preventDefault();
+        setCommandPaletteInitialQuery('');
         setShowCommandPalette(true);
       }
     };
@@ -898,6 +1080,7 @@ export function FileSidebar() {
   );
 
   const [sidebarMenu, setSidebarMenu] = useState<{ x: number; y: number } | null>(null);
+  const [paletteBranchAction, setPaletteBranchAction] = useState(false);
 
   const sidebarMenuItems: ContextMenuItem[] = [
     { label: 'Open folder…', icon: '📁', onClick: () => void handleOpenFolder() },
@@ -909,6 +1092,71 @@ export function FileSidebar() {
       onClick: () => setShowEmptyDirs(!showEmptyDirs),
     },
   ];
+
+  const gitPaletteActions = useMemo<ActionItem[]>(() => {
+    if (!isGitRepo || !rootDirectory) return [];
+    const dir = rootDirectory;
+    const actions: ActionItem[] = [
+      {
+        kind: 'action',
+        id: 'git-switch-branch',
+        label: 'Git: Switch Branch',
+        description: gitStatus ? `Current: ${gitStatus.branch}` : undefined,
+        icon: '⑂',
+        run: () => {
+          setShowCommandPalette(false);
+          setPaletteBranchAction(true);
+        },
+      },
+      {
+        kind: 'action',
+        id: 'git-fetch',
+        label: 'Git: Fetch',
+        description: 'Fetch latest from remote',
+        icon: '⟳',
+        run: async () => {
+          try { await window.httpyacAPI.gitFetch(dir); await refreshGitStatus(dir); }
+          catch (e) { console.error('git fetch failed', e); }
+        },
+      },
+      {
+        kind: 'action',
+        id: 'git-pull',
+        label: 'Git: Pull',
+        description: 'Pull latest changes from remote',
+        icon: '↓',
+        run: async () => {
+          try { await window.httpyacAPI.gitPull(dir); await refreshGitStatus(dir); }
+          catch (e) { console.error('git pull failed', e); }
+        },
+      },
+      {
+        kind: 'action',
+        id: 'git-push',
+        label: 'Git: Push',
+        description: 'Push local commits to remote',
+        icon: '↑',
+        run: async () => {
+          try {
+            try { await window.httpyacAPI.gitPush(dir); }
+            catch { await window.httpyacAPI.gitPushSetUpstream(dir); }
+            await refreshGitStatus(dir);
+          } catch (e) { console.error('git push failed', e); }
+        },
+      },
+      {
+        kind: 'action',
+        id: 'git-commit',
+        label: 'Git: Commit',
+        description: 'Stage & commit changes',
+        icon: '✓',
+        run: () => {
+          document.dispatchEvent(new CustomEvent('git:open-commit-panel'));
+        },
+      },
+    ];
+    return actions;
+  }, [isGitRepo, rootDirectory, gitStatus, refreshGitStatus]);
 
   return (
     <FileTreeContext.Provider value={treeContextValue}>
@@ -993,6 +1241,15 @@ export function FileSidebar() {
             rootDir={rootDirectory}
             onOpen={entry => void handleCommandPaletteOpen(entry)}
             onClose={() => setShowCommandPalette(false)}
+            gitActions={gitPaletteActions}
+            initialQuery={commandPaletteInitialQuery}
+          />
+        )}
+
+        {paletteBranchAction && rootDirectory && (
+          <BranchSwitchPalette
+            dirPath={rootDirectory}
+            onClose={() => setPaletteBranchAction(false)}
           />
         )}
 

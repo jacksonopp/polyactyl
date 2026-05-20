@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { FileSidebar } from './components/FileSidebar';
+import { GitStatusBar } from './components/GitStatusBar';
 import { RequestEditor } from './components/RequestEditor';
 import { ResizeHandle } from './components/ResizeHandle';
 import { ResponseViewer } from './components/ResponseViewer';
@@ -61,6 +62,7 @@ export default function App() {
     <div className="app">
       <aside className="sidebar" style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
         <FileSidebar />
+        <GitStatusBar />
       </aside>
 
       <ResizeHandle onDrag={handleSidebarDrag} />
