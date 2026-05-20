@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 
 import { javascript } from '@codemirror/lang-javascript';
@@ -315,6 +315,7 @@ function TabBar() {
             onKeyDown={e => { if (e.key === 'Enter') setActiveTabIndex(index); }}
             title={tab.path}
           >
+            {tab.content !== tab.savedContent && <span className="tab-dirty-dot" title="Unsaved changes">●</span>}
             <span className="tab-label">{basename(tab.path)}</span>
             <button
               className="tab-close"
@@ -348,11 +349,42 @@ export function RequestEditor() {
   const tabs = useAppStore(state => state.tabs);
   const activeTabIndex = useAppStore(state => state.activeTabIndex);
   const setTabContent = useAppStore(state => state.setTabContent);
+  const markTabSaved = useAppStore(state => state.markTabSaved);
 
   const activeTab = tabs[activeTabIndex] ?? null;
   const activeTabPath = activeTab?.path ?? null;
   const activeTabContent = activeTab?.content ?? '';
   const activeTabFileType = activeTab?.fileType;
+
+  const saveActiveTab = useCallback(async () => {
+    const tab = tabs[activeTabIndex];
+    if (!tab) return;
+    try {
+      await window.httpyacAPI.saveFile(tab.path, tab.content);
+      markTabSaved(activeTabIndex);
+    } catch (err) {
+      console.error('Save failed:', err);
+    }
+  }, [tabs, activeTabIndex, markTabSaved]);
+
+  // Cmd+S / Ctrl+S
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        void saveActiveTab();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [saveActiveTab]);
+
+  // File→Save from native menu
+  useEffect(() => {
+    return window.httpyacAPI.onMenuAction((action: string) => {
+      if (action === 'file:save') void saveActiveTab();
+    });
+  }, [saveActiveTab]);
 
   // Recreate editor when the active file changes
   useEffect(() => {

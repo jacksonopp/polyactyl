@@ -398,11 +398,24 @@ function FileTreeNode({ entry }: { entry: FileEntry }) {
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   const activeTab = useAppStore(state => state.tabs[state.activeTabIndex]);
+  const gitStatus = useAppStore(state => state.gitStatus);
   const { onCreateFile, onCreateFolder, onDeleteFile, onMoveFile, onRenameEntry, onDuplicateFile, onRevealInFinder, draggingPath, setDraggingPath } = useContext(FileTreeContext);
 
   const isActive = !entry.isDirectory && activeTab?.path === entry.path;
   const itemRef = useRef<HTMLDivElement>(null);
   const wasActiveRef = useRef(false);
+
+  // Compute git change status for this entry (files only)
+  const gitChangeStatus = (() => {
+    if (entry.isDirectory || !gitStatus) return null;
+    const root = gitStatus.gitRoot;
+    const rel = entry.path.startsWith(root + '/') ? entry.path.slice(root.length + 1) : null;
+    if (!rel) return null;
+    if (gitStatus.staged.includes(rel)) return 'staged';
+    if (gitStatus.unstaged.includes(rel)) return 'modified';
+    if (gitStatus.untracked.includes(rel)) return 'untracked';
+    return null;
+  })();
 
   // Scroll into view when this file transitions from inactive → active.
   useEffect(() => {
@@ -513,6 +526,7 @@ function FileTreeNode({ entry }: { entry: FileEntry }) {
           entry.fileType ? `file-type-${entry.fileType}` : '',
           isDragOver ? 'drag-over' : '',
           isBeingDragged ? 'dragging' : '',
+          gitChangeStatus ? `git-${gitChangeStatus}` : '',
         ]
           .filter(Boolean)
           .join(' ')}

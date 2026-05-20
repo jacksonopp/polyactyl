@@ -23,6 +23,8 @@ const api = {
   readFile: (filePath: string): Promise<string> => ipcRenderer.invoke('file:readFile', filePath),
   createFile: (filePath: string, content?: string): Promise<void> =>
     ipcRenderer.invoke('file:createFile', { filePath, content }),
+  saveFile: (filePath: string, content: string): Promise<void> =>
+    ipcRenderer.invoke('file:saveFile', { filePath, content }),
   createFolder: (folderPath: string): Promise<void> =>
     ipcRenderer.invoke('file:createFolder', folderPath),
   moveFile: (sourcePath: string, targetDir: string): Promise<string> =>

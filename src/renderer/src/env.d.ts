@@ -15,6 +15,7 @@ export type GitStatus = {
   staged: string[];
   unstaged: string[];
   untracked: string[];
+  gitRoot: string;
 };
 
 export type SerializedResponse = {
@@ -85,6 +86,7 @@ declare global {
       readDirectory(dirPath: string, includeEmptyDirs?: boolean): Promise<FileEntry[]>;
       readFile(filePath: string): Promise<string>;
       createFile(filePath: string, content?: string): Promise<void>;
+      saveFile(filePath: string, content: string): Promise<void>;
       createFolder(folderPath: string): Promise<void>;
       moveFile(sourcePath: string, targetDir: string): Promise<string>;
       deleteFile(filePath: string): Promise<void>;

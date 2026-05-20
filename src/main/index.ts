@@ -55,6 +55,12 @@ function buildMenu(): Menu {
           click: () => sendMenuAction('file:newFolder'),
         },
         { type: 'separator' },
+        {
+          label: 'Save',
+          accelerator: 'CmdOrCtrl+S',
+          click: () => sendMenuAction('file:save'),
+        },
+        { type: 'separator' },
         isMac ? { role: 'close' as const } : { role: 'quit' as const },
       ],
     },

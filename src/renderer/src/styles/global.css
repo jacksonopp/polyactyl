@@ -1869,3 +1869,34 @@ button {
 .cmd-palette-action .cmd-palette-name {
   color: var(--text-primary);
 }
+
+/* ── Git change indicators in file tree ─────────────── */
+
+.file-tree-item.git-modified .file-tree-name,
+.file-tree-item.git-staged .file-tree-name {
+  color: #e5c07b;
+}
+
+.file-tree-item.git-untracked .file-tree-name {
+  color: #98c379;
+}
+
+.file-tree-item.git-modified .file-tree-icon,
+.file-tree-item.git-staged .file-tree-icon {
+  color: #e5c07b;
+}
+
+.file-tree-item.git-untracked .file-tree-icon {
+  color: #98c379;
+}
+
+/* ── Tab dirty dot ───────────────────────────────────── */
+
+.tab-dirty-dot {
+  font-size: 8px;
+  line-height: 1;
+  color: var(--accent-blue);
+  margin-right: 4px;
+  flex-shrink: 0;
+  align-self: center;
+}

@@ -5,6 +5,7 @@ import type { FileEntry, FileType, GitStatus, ProcessedRegion } from '../env';
 export interface Tab {
   path: string;
   content: string;
+  savedContent: string;
   fileType?: FileType;
 }
 
@@ -44,6 +45,7 @@ interface AppState {
   closeTab: (index: number) => void;
   setActiveTabIndex: (index: number) => void;
   setTabContent: (index: number, content: string) => void;
+  markTabSaved: (index: number) => void;
   updateTabPath: (oldPath: string, newPath: string) => void;
   closeTabByPath: (path: string) => void;
   closeTabsUnderPath: (pathPrefix: string) => void;
@@ -94,7 +96,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (existing !== -1) {
       set({ activeTabIndex: existing });
     } else {
-      set({ tabs: [...tabs, { path, content, fileType }], activeTabIndex: tabs.length });
+      set({ tabs: [...tabs, { path, content, savedContent: content, fileType }], activeTabIndex: tabs.length });
     }
   },
 
@@ -115,6 +117,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   setTabContent: (index, content) =>
     set(state => ({
       tabs: state.tabs.map((t, i) => (i === index ? { ...t, content } : t)),
+    })),
+
+  markTabSaved: (index) =>
+    set(state => ({
+      tabs: state.tabs.map((t, i) => (i === index ? { ...t, savedContent: t.content } : t)),
     })),
 
   updateTabPath: (oldPath, newPath) =>

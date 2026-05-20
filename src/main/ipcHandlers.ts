@@ -21,6 +21,7 @@ export interface GitStatus {
   staged: string[];
   unstaged: string[];
   untracked: string[];
+  gitRoot: string;
 }
 
 async function getGitStatus(dirPath: string): Promise<GitStatus> {
@@ -58,7 +59,7 @@ async function getGitStatus(dirPath: string): Promise<GitStatus> {
     if (y !== ' ' && y !== '?') unstaged.push(file);
   }
 
-  return { branch, ahead, behind, staged, unstaged, untracked };
+  return { branch, ahead, behind, staged, unstaged, untracked, gitRoot: cwd };
 }
 
 
@@ -409,6 +410,10 @@ export function registerIpcHandlers(): void {
 
   handle<{ filePath: string; content?: string }, void>('file:createFile', async (_event, { filePath, content = '' }) => {
     await fs.writeFile(filePath, content, { flag: 'wx' });
+  });
+
+  handle<{ filePath: string; content: string }, void>('file:saveFile', async (_event, { filePath, content }) => {
+    await fs.writeFile(filePath, content, 'utf-8');
   });
 
   handle<string, void>('file:createFolder', async (_event, folderPath) => {
