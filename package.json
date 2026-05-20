@@ -1,6 +1,6 @@
 {
   "name": "polyactyl",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "Polyactyl — desktop HTTP client powered by httpYac",
   "private": true,
   "main": "out/main/index.js",
