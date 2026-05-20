@@ -1367,15 +1367,26 @@ export function FileSidebar() {
             </div>
           ) : displayTree.length === 0 ? (
             <div className="sidebar-empty">
-              <p>Open a folder to browse .http and .rest files.</p>
-              <div>
-                <button className="btn-primary" type="button" onClick={() => void handleOpenFolder()}>
-                  Open folder
-                </button>
-              </div>
-              <button className="btn-secondary" type="button" onClick={() => void handleOpenFile()}>
-                Open single file
-              </button>
+              {rootDirectory ? (
+                <>
+                  <p>This folder has no .http or .rest files.</p>
+                  <button className="btn-primary" type="button" onClick={() => handleNewFile(rootDirectory)}>
+                    Create a file
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p>Open a folder to browse .http and .rest files.</p>
+                  <div>
+                    <button className="btn-primary" type="button" onClick={() => void handleOpenFolder()}>
+                      Open folder
+                    </button>
+                  </div>
+                  <button className="btn-secondary" type="button" onClick={() => void handleOpenFile()}>
+                    Open single file
+                  </button>
+                </>
+              )}
             </div>
           ) : (
             displayTree.map(entry => <FileTreeNode key={entry.path} entry={entry} />)
