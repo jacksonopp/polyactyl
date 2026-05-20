@@ -664,6 +664,7 @@ export function FileSidebar() {
   const openTab = useAppStore(state => state.openTab);
   const updateTabPath = useAppStore(state => state.updateTabPath);
 
+  const tabs = useAppStore(state => state.tabs);
   const closeTabByPath = useAppStore(state => state.closeTabByPath);
   const closeTabsUnderPath = useAppStore(state => state.closeTabsUnderPath);
 
@@ -719,6 +720,37 @@ export function FileSidebar() {
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, []);
+
+  // Refresh tree when git branch changes (e.g. checkout).
+  // Also close any open tabs whose files no longer exist on the new branch.
+  useEffect(() => {
+    const unsub = window.httpyacAPI.onGitBranchChanged(async () => {
+      if (!rootDirectory) return;
+      setLoadingDirectory(true);
+      try {
+        const tree = await window.httpyacAPI.readDirectory(rootDirectory, true);
+        setFileTree(tree);
+        // Build set of all file paths in the new tree
+        const existingPaths = new Set<string>();
+        const collect = (entries: typeof tree) => {
+          for (const e of entries) {
+            if (!e.isDirectory) existingPaths.add(e.path);
+            if (e.children) collect(e.children);
+          }
+        };
+        collect(tree);
+        // Close tabs that no longer exist
+        for (const tab of tabs) {
+          if (!existingPaths.has(tab.path)) {
+            closeTabByPath(tab.path);
+          }
+        }
+      } finally {
+        setLoadingDirectory(false);
+      }
+    });
+    return unsub;
+  }, [rootDirectory, tabs, closeTabByPath, setFileTree, setLoadingDirectory]);
 
   const handleOpenFolder = async () => {
     const selectedPath = await window.httpyacAPI.openDialog();

@@ -1,5 +1,5 @@
 import { BrowserWindow, app, clipboard, dialog, ipcMain, shell } from 'electron';
-import { promises as fs } from 'fs';
+import { promises as fs, watch as fsWatch } from 'fs';
 import { dirname, join } from 'path';
 
 import * as httpyac from 'httpyac';
@@ -235,6 +235,51 @@ function handle<TArgs, TResult>(channel: string, listener: (event: Electron.IpcM
   ipcMain.handle(channel, listener);
 }
 
+// ── Git HEAD watcher — notifies renderer on branch switch ─────────────────
+import type { FSWatcher } from 'fs';
+
+let gitWatcher: FSWatcher | null = null;
+
+/** Walk up directory tree to find the nearest .git/HEAD file. */
+async function findGitHead(dirPath: string): Promise<string | null> {
+  let current = dirPath;
+  while (true) {
+    const candidate = join(current, '.git', 'HEAD');
+    try {
+      await fs.access(candidate);
+      return candidate;
+    } catch {
+      const parent = dirname(current);
+      if (parent === current) return null; // reached filesystem root
+      current = parent;
+    }
+  }
+}
+
+function watchGitHead(dirPath: string): void {
+  if (gitWatcher) {
+    gitWatcher.close();
+    gitWatcher = null;
+  }
+
+  findGitHead(dirPath).then(gitHeadPath => {
+    if (!gitHeadPath) return;
+
+    // Watch the .git directory (not just HEAD) so atomic rename-writes are caught
+    const gitDir = dirname(gitHeadPath);
+    gitWatcher = fsWatch(gitDir, (_event, filename) => {
+      if (filename === 'HEAD' || filename === 'ORIG_HEAD') {
+        const win = BrowserWindow.getAllWindows()[0];
+        if (win) win.webContents.send('git:branchChanged');
+      }
+    });
+    gitWatcher.on('error', () => {
+      gitWatcher?.close();
+      gitWatcher = null;
+    });
+  }).catch(() => {});
+}
+
 // ── Preferences (persisted to userData/prefs.json) ────────────────────────
 const prefsPath = join(app.getPath('userData'), 'prefs.json');
 
@@ -295,9 +340,14 @@ export function registerIpcHandlers(): void {
 
   handle<string, string>('file:readFile', async (_event, filePath) => fs.readFile(filePath, 'utf-8'));
 
-  handle<{ dirPath: string; includeEmptyDirs?: boolean }, FileEntry[]>('file:readDirectory', async (_event, args) =>
-    readDirectoryRecursive(args.dirPath, 0, args.includeEmptyDirs ?? false)
-  );
+  handle<{ dirPath: string; includeEmptyDirs?: boolean }, FileEntry[]>('file:readDirectory', async (_event, args) => {
+    watchGitHead(args.dirPath);
+    return readDirectoryRecursive(args.dirPath, 0, args.includeEmptyDirs ?? false);
+  });
+
+  handle<string, void>('git:watch', async (_event, dirPath) => {
+    watchGitHead(dirPath);
+  });
 
   handle<{ filePath: string; content?: string }, void>('file:createFile', async (_event, { filePath, content = '' }) => {
     await fs.writeFile(filePath, content, { flag: 'wx' });

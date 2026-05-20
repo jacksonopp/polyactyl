@@ -43,6 +43,11 @@ const api = {
   },
   getPreference: (key: string): Promise<unknown> => ipcRenderer.invoke('prefs:get', { key }),
   setPreference: (key: string, value: unknown): Promise<void> => ipcRenderer.invoke('prefs:set', { key, value }),
+  onGitBranchChanged: (callback: () => void): (() => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('git:branchChanged', listener);
+    return () => ipcRenderer.removeListener('git:branchChanged', listener);
+  },
 };
 
 contextBridge.exposeInMainWorld('httpyacAPI', api);

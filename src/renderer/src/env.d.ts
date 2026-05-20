@@ -86,6 +86,7 @@ declare global {
       onSendProgress(callback: (data: SendProgressEvent) => void): () => void;
       getPreference(key: string): Promise<unknown>;
       setPreference(key: string, value: unknown): Promise<void>;
+      onGitBranchChanged(callback: () => void): () => void;
     };
   }
 }
