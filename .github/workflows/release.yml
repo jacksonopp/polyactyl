@@ -7,7 +7,7 @@ on:
 
 jobs:
   version-bump:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     outputs:
@@ -41,17 +41,26 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: self-hosted
+          - os: macos-latest
             script: build:mac
             artifact-glob: dist-electron/*.dmg
             artifact-name: mac-build
+
+          - os: windows-latest
+            script: build:win
+            artifact-glob: dist-electron/*.exe
+            artifact-name: win-build
+
+          - os: ubuntu-latest
+            script: build:linux
+            artifact-glob: dist-electron/*.AppImage
+            artifact-name: linux-build
 
     runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
         with:
-          # Check out the version-bump commit, not the original trigger commit
           ref: main
 
       - uses: actions/setup-node@v4
@@ -59,13 +68,20 @@ jobs:
           node-version: 20
           cache: npm
 
+      - name: Install dependencies (Linux — need electron deps)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 \
+            libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
+            libxfixes3 libxrandr2 libgbm1 libasound2
+
       - name: Install dependencies
         run: npm ci
 
       - name: Build
         run: npm run ${{ matrix.script }}
         env:
-          # Prevents electron-builder from trying to sign/notarize without credentials
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Upload artifact
@@ -77,7 +93,7 @@ jobs:
 
   release:
     needs: [version-bump, build]
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     permissions:
       contents: write
 
@@ -92,7 +108,7 @@ jobs:
           path: artifacts
           merge-multiple: true
 
-      - name: Create or update release
+      - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.version-bump.outputs.new_version }}
