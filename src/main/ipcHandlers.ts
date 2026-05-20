@@ -411,6 +411,10 @@ export function registerIpcHandlers(): void {
     await fs.writeFile(filePath, content, { flag: 'wx' });
   });
 
+  handle<string, void>('file:createFolder', async (_event, folderPath) => {
+    await fs.mkdir(folderPath, { recursive: false });
+  });
+
   handle<{ sourcePath: string; targetDir: string }, string>('file:moveFile', async (_event, { sourcePath, targetDir }) => {
     const name = sourcePath.split(/[/\\]/u).pop()!;
     const newPath = join(targetDir, name);

@@ -23,6 +23,8 @@ const api = {
   readFile: (filePath: string): Promise<string> => ipcRenderer.invoke('file:readFile', filePath),
   createFile: (filePath: string, content?: string): Promise<void> =>
     ipcRenderer.invoke('file:createFile', { filePath, content }),
+  createFolder: (folderPath: string): Promise<void> =>
+    ipcRenderer.invoke('file:createFolder', folderPath),
   moveFile: (sourcePath: string, targetDir: string): Promise<string> =>
     ipcRenderer.invoke('file:moveFile', { sourcePath, targetDir }),
   deleteFile: (filePath: string): Promise<void> =>
@@ -59,6 +61,11 @@ const api = {
   gitStage: (dirPath: string, files: string[]): Promise<void> => ipcRenderer.invoke('git:stage', { dirPath, files }),
   gitStageAll: (dirPath: string): Promise<void> => ipcRenderer.invoke('git:stageAll', { dirPath }),
   gitCommit: (dirPath: string, message: string, push: boolean): Promise<void> => ipcRenderer.invoke('git:commit', { dirPath, message, push }),
+  onMenuAction: (callback: (action: string) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, action: string) => callback(action);
+    ipcRenderer.on('menu:action', listener);
+    return () => ipcRenderer.removeListener('menu:action', listener);
+  },
 };
 
 contextBridge.exposeInMainWorld('httpyacAPI', api);

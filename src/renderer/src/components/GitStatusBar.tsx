@@ -272,6 +272,64 @@ export function GitStatusBar() {
     return () => document.removeEventListener('git:open-commit-panel', handler);
   }, []);
 
+  const handleFetch = useCallback(async () => {
+    if (!rootDirectory) return;
+    setActionLoading('fetch');
+    setActionError(null);
+    try {
+      await window.httpyacAPI.gitFetch(rootDirectory);
+      await refresh();
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setActionLoading(null);
+    }
+  }, [rootDirectory, refresh]);
+
+  const handlePull = useCallback(async () => {
+    if (!rootDirectory) return;
+    setActionLoading('pull');
+    setActionError(null);
+    try {
+      await window.httpyacAPI.gitPull(rootDirectory);
+      await refresh();
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setActionLoading(null);
+    }
+  }, [rootDirectory, refresh]);
+
+  const handlePush = useCallback(async () => {
+    if (!rootDirectory) return;
+    setActionLoading('push');
+    setActionError(null);
+    try {
+      try {
+        await window.httpyacAPI.gitPush(rootDirectory);
+      } catch {
+        await window.httpyacAPI.gitPushSetUpstream(rootDirectory);
+      }
+      await refresh();
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setActionLoading(null);
+    }
+  }, [rootDirectory, refresh]);
+
+  // Handle git actions from native menu bar
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const action = (e as CustomEvent<string>).detail;
+      if (action === 'fetch') void handleFetch();
+      else if (action === 'pull') void handlePull();
+      else if (action === 'push') void handlePush();
+    };
+    document.addEventListener('git:action', handler);
+    return () => document.removeEventListener('git:action', handler);
+  }, [handleFetch, handlePull, handlePush]);
+
   if (!rootDirectory || (!isGitRepo && !gitLoading)) return null;
 
   const dirty = gitStatus
@@ -309,52 +367,6 @@ export function GitStatusBar() {
     setActionError(null);
     try {
       await window.httpyacAPI.gitCheckoutNew(rootDirectory, name);
-      await refresh();
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleFetch = async () => {
-    if (!rootDirectory) return;
-    setActionLoading('fetch');
-    setActionError(null);
-    try {
-      await window.httpyacAPI.gitFetch(rootDirectory);
-      await refresh();
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handlePull = async () => {
-    if (!rootDirectory) return;
-    setActionLoading('pull');
-    setActionError(null);
-    try {
-      await window.httpyacAPI.gitPull(rootDirectory);
-      await refresh();
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handlePush = async () => {
-    if (!rootDirectory) return;
-    setActionLoading('push');
-    setActionError(null);
-    try {
-      try {
-        await window.httpyacAPI.gitPush(rootDirectory);
-      } catch {
-        await window.httpyacAPI.gitPushSetUpstream(rootDirectory);
-      }
       await refresh();
     } catch (e) {
       setActionError(e instanceof Error ? e.message : String(e));

@@ -85,6 +85,7 @@ declare global {
       readDirectory(dirPath: string, includeEmptyDirs?: boolean): Promise<FileEntry[]>;
       readFile(filePath: string): Promise<string>;
       createFile(filePath: string, content?: string): Promise<void>;
+      createFolder(folderPath: string): Promise<void>;
       moveFile(sourcePath: string, targetDir: string): Promise<string>;
       deleteFile(filePath: string): Promise<void>;
       renameEntry(oldPath: string, newPath: string): Promise<string>;
@@ -107,6 +108,7 @@ declare global {
       gitStage(dirPath: string, files: string[]): Promise<void>;
       gitStageAll(dirPath: string): Promise<void>;
       gitCommit(dirPath: string, message: string, push: boolean): Promise<void>;
+      onMenuAction(callback: (action: string) => void): () => void;
     };
   }
 }

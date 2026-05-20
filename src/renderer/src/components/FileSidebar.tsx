@@ -169,6 +169,7 @@ function insertDuplicateInTree(entries: FileEntry[], originalPath: string, newEn
 
 interface FileTreeContextValue {
   onCreateFile: (dirPath: string) => void;
+  onCreateFolder: (dirPath: string) => void;
   onDeleteFile: (filePath: string, isDirectory?: boolean) => Promise<void>;
   onMoveFile: (sourcePath: string, targetDir: string) => Promise<void>;
   onRenameEntry: (filePath: string, isDirectory: boolean, newName: string) => Promise<void>;
@@ -180,6 +181,7 @@ interface FileTreeContextValue {
 
 const FileTreeContext = createContext<FileTreeContextValue>({
   onCreateFile: () => {},
+  onCreateFolder: () => {},
   onDeleteFile: async () => {},
   onMoveFile: async () => {},
   onRenameEntry: async () => {},
@@ -189,8 +191,57 @@ const FileTreeContext = createContext<FileTreeContextValue>({
   setDraggingPath: () => {},
 });
 
-// ── NewFileModal ──────────────────────────────────────
+// ── NewFolderModal ────────────────────────────────────
 
+interface NewFolderModalProps {
+  dirPath: string;
+  onConfirm: (name: string) => void;
+  onCancel: () => void;
+  error?: string | null;
+}
+
+function NewFolderModal({ dirPath, onConfirm, onCancel, error }: NewFolderModalProps) {
+  const [name, setName] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    onConfirm(trimmed);
+  };
+
+  return ReactDOM.createPortal(
+    <div className="new-file-modal-overlay" onKeyDown={e => e.key === 'Escape' && onCancel()}>
+      <div className="new-file-modal">
+        <div className="new-file-modal-header">
+          New folder
+          <span className="new-file-modal-dir">{dirPath}</span>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <input
+            ref={inputRef}
+            className="new-file-input"
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder="folder-name"
+          />
+          {error && <div className="new-file-error" style={{ marginTop: 10 }}>{error}</div>}
+          <div className="new-file-actions" style={{ marginTop: 14 }}>
+            <button type="submit" className="btn-primary" disabled={!name.trim()}>Create</button>
+            <button type="button" className="btn-secondary" onClick={onCancel}>Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// ── NewFileModal ──────────────────────────────────────
 interface NewFileModalProps {
   dirPath: string;
   onConfirm: (name: string) => void;
@@ -347,7 +398,7 @@ function FileTreeNode({ entry }: { entry: FileEntry }) {
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   const activeTab = useAppStore(state => state.tabs[state.activeTabIndex]);
-  const { onCreateFile, onDeleteFile, onMoveFile, onRenameEntry, onDuplicateFile, onRevealInFinder, draggingPath, setDraggingPath } = useContext(FileTreeContext);
+  const { onCreateFile, onCreateFolder, onDeleteFile, onMoveFile, onRenameEntry, onDuplicateFile, onRevealInFinder, draggingPath, setDraggingPath } = useContext(FileTreeContext);
 
   const isActive = !entry.isDirectory && activeTab?.path === entry.path;
   const itemRef = useRef<HTMLDivElement>(null);
@@ -393,6 +444,7 @@ function FileTreeNode({ entry }: { entry: FileEntry }) {
   const contextMenuItems: ContextMenuItem[] = entry.isDirectory
     ? [
         { label: 'New file here', icon: '✦', onClick: () => onCreateFile(entry.path) },
+        { label: 'New folder here', icon: '📁', onClick: () => onCreateFolder(entry.path) },
         { label: 'Rename', icon: '✎', onClick: startRename },
         { separator: true },
         { label: 'Copy Path', icon: '⎘', onClick: () => void navigator.clipboard.writeText(entry.path) },
@@ -828,6 +880,8 @@ export function FileSidebar() {
   const [newFileError, setNewFileError] = useState<string | null>(null);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [commandPaletteInitialQuery, setCommandPaletteInitialQuery] = useState('');
+  const [newFolderModalDir, setNewFolderModalDir] = useState<string | null>(null);
+  const [newFolderError, setNewFolderError] = useState<string | null>(null);
 
   const refreshGitStatus = useCallback(async (dir: string) => {
     setGitLoading(true);
@@ -903,6 +957,78 @@ export function FileSidebar() {
     return () => document.removeEventListener('keydown', handler);
   }, []);
 
+  const handleOpenFolder = useCallback(async () => {
+    const selectedPath = await window.httpyacAPI.openDialog();
+    if (!selectedPath) return;
+    setRootDirectory(selectedPath);
+    window.httpyacAPI.setPreference('lastDirectory', selectedPath);
+    await doRefreshTree(selectedPath);
+  }, [setRootDirectory, doRefreshTree]);
+
+  const handleOpenFile = useCallback(async () => {
+    const selectedPath = await window.httpyacAPI.openFileDialog();
+    if (!selectedPath) return;
+    const content = await window.httpyacAPI.readFile(selectedPath);
+    const name = fileBaseName(selectedPath);
+    openTab(selectedPath, content, inferFileType(name));
+    const dir = dirName(selectedPath);
+    setRootDirectory(dir);
+    window.httpyacAPI.setPreference('lastDirectory', dir);
+  }, [setRootDirectory, openTab]);
+
+  const handleNewFile = useCallback((dirPath: string) => {
+    setNewFileError(null);
+    setNewFileModalDir(dirPath);
+  }, []);
+
+  const handleNewFolder = useCallback((dirPath: string) => {
+    setNewFolderError(null);
+    setNewFolderModalDir(dirPath);
+  }, []);
+
+  // Native menu bar actions sent from main process via IPC
+  useEffect(() => {
+    const unsub = window.httpyacAPI.onMenuAction((action: string) => {
+      switch (action) {
+        case 'file:openFolder': void handleOpenFolder(); break;
+        case 'file:openFile': void handleOpenFile(); break;
+        case 'file:newFile':
+          if (rootDirectory) handleNewFile(rootDirectory);
+          break;
+        case 'file:newFolder':
+          if (rootDirectory) handleNewFolder(rootDirectory);
+          break;
+        case 'view:commandPalette':
+          setCommandPaletteInitialQuery('');
+          setShowCommandPalette(true);
+          break;
+        case 'view:commandPaletteActions':
+          setCommandPaletteInitialQuery('>');
+          setShowCommandPalette(true);
+          break;
+        case 'view:toggleEmptyFolders':
+          setShowEmptyDirs(!useAppStore.getState().showEmptyDirs);
+          break;
+        case 'git:switchBranch':
+          if (rootDirectory) setPaletteBranchAction(true);
+          break;
+        case 'git:fetch':
+          document.dispatchEvent(new CustomEvent('git:action', { detail: 'fetch' }));
+          break;
+        case 'git:pull':
+          document.dispatchEvent(new CustomEvent('git:action', { detail: 'pull' }));
+          break;
+        case 'git:push':
+          document.dispatchEvent(new CustomEvent('git:action', { detail: 'push' }));
+          break;
+        case 'git:commit':
+          document.dispatchEvent(new CustomEvent('git:open-commit-panel'));
+          break;
+      }
+    });
+    return unsub;
+  }, [rootDirectory, handleOpenFolder, handleOpenFile, handleNewFile, handleNewFolder]);
+
   // Refresh tree when git branch changes (e.g. checkout).
   // Also close any open tabs whose files no longer exist on the new branch.
   useEffect(() => {
@@ -934,29 +1060,23 @@ export function FileSidebar() {
     return unsub;
   }, [rootDirectory, tabs, closeTabByPath, setFileTree, setLoadingDirectory]);
 
-  const handleOpenFolder = async () => {
-    const selectedPath = await window.httpyacAPI.openDialog();
-    if (!selectedPath) return;
-    setRootDirectory(selectedPath);
-    window.httpyacAPI.setPreference('lastDirectory', selectedPath);
-    await doRefreshTree(selectedPath);
+  const handleNewFolderConfirm = async (name: string) => {
+    if (!newFolderModalDir) return;
+    const folderPath = joinPath(newFolderModalDir, name);
+    try {
+      await window.httpyacAPI.createFolder(folderPath);
+      setNewFolderModalDir(null);
+      setNewFolderError(null);
+      // Insert the new folder into the in-memory tree
+      const newEntry: FileEntry = { name, path: folderPath, isDirectory: true, children: [] };
+      if (rootDirectory) {
+        const current = useAppStore.getState().fileTree;
+        setFileTree(insertFileIntoTree(current, newFolderModalDir, rootDirectory, newEntry));
+      }
+    } catch (err) {
+      setNewFolderError(err instanceof Error ? err.message : String(err));
+    }
   };
-
-  const handleOpenFile = async () => {
-    const selectedPath = await window.httpyacAPI.openFileDialog();
-    if (!selectedPath) return;
-    const content = await window.httpyacAPI.readFile(selectedPath);
-    const name = fileBaseName(selectedPath);
-    openTab(selectedPath, content, inferFileType(name));
-    const dir = dirName(selectedPath);
-    setRootDirectory(dir);
-    window.httpyacAPI.setPreference('lastDirectory', dir);
-  };
-
-  const handleNewFile = useCallback((dirPath: string) => {
-    setNewFileError(null);
-    setNewFileModalDir(dirPath);
-  }, []);
 
   const handleDeleteFile = useCallback(
     async (filePath: string, isDirectory = false) => {
@@ -1068,6 +1188,7 @@ export function FileSidebar() {
   const treeContextValue = useMemo<FileTreeContextValue>(
     () => ({
       onCreateFile: handleNewFile,
+      onCreateFolder: handleNewFolder,
       onDeleteFile: handleDeleteFile,
       onMoveFile: handleMoveFile,
       onRenameEntry: handleRenameEntry,
@@ -1076,22 +1197,30 @@ export function FileSidebar() {
       draggingPath,
       setDraggingPath,
     }),
-    [handleNewFile, handleDeleteFile, handleMoveFile, handleRenameEntry, handleDuplicateFile, handleRevealInFinder, draggingPath]
+    [handleNewFile, handleNewFolder, handleDeleteFile, handleMoveFile, handleRenameEntry, handleDuplicateFile, handleRevealInFinder, draggingPath]
   );
 
   const [sidebarMenu, setSidebarMenu] = useState<{ x: number; y: number } | null>(null);
   const [paletteBranchAction, setPaletteBranchAction] = useState(false);
 
-  const sidebarMenuItems: ContextMenuItem[] = [
-    { label: 'Open folder…', icon: '📁', onClick: () => void handleOpenFolder() },
-    { label: 'Open file…', icon: '📄', onClick: () => void handleOpenFile() },
-    { separator: true },
-    {
-      label: showEmptyDirs ? 'Hide empty folders' : 'Show empty folders',
-      icon: showEmptyDirs ? '◉' : '◎',
-      onClick: () => setShowEmptyDirs(!showEmptyDirs),
-    },
-  ];
+  const sidebarMenuItems: ContextMenuItem[] = rootDirectory
+    ? [
+        { label: 'New file', icon: '✦', onClick: () => handleNewFile(rootDirectory) },
+        { label: 'New folder', icon: '📁', onClick: () => handleNewFolder(rootDirectory) },
+        { separator: true },
+        { label: 'Open folder…', icon: '📂', onClick: () => void handleOpenFolder() },
+        { label: 'Open file…', icon: '📄', onClick: () => void handleOpenFile() },
+        { separator: true },
+        {
+          label: showEmptyDirs ? 'Hide empty folders' : 'Show empty folders',
+          icon: showEmptyDirs ? '◉' : '◎',
+          onClick: () => setShowEmptyDirs(!showEmptyDirs),
+        },
+      ]
+    : [
+        { label: 'Open folder…', icon: '📂', onClick: () => void handleOpenFolder() },
+        { label: 'Open file…', icon: '📄', onClick: () => void handleOpenFile() },
+      ];
 
   const gitPaletteActions = useMemo<ActionItem[]>(() => {
     if (!isGitRepo || !rootDirectory) return [];
@@ -1183,6 +1312,15 @@ export function FileSidebar() {
             >
               +
             </button>
+            <button
+              className="icon-button"
+              type="button"
+              onClick={() => rootDirectory && handleNewFolder(rootDirectory)}
+              title="New folder"
+              disabled={isLoadingDirectory || !rootDirectory}
+            >
+              📁
+            </button>
           </div>
           <span className="sidebar-folder-name" title={rootDirectory ?? undefined}>
             {isLoadingDirectory ? 'Loading…' : rootDirectory ? fileBaseName(rootDirectory) : 'No folder open'}
@@ -1200,7 +1338,14 @@ export function FileSidebar() {
           </div>
         </div>
 
-        <div className="file-tree">
+        <div
+          className="file-tree"
+          onContextMenu={e => {
+            // Only trigger on blank space (not on tree nodes which stop propagation)
+            e.preventDefault();
+            setSidebarMenu({ x: e.clientX, y: e.clientY });
+          }}
+        >
           {isLoadingDirectory ? (
             <div className="sidebar-loading">
               <div className="spinner" />
@@ -1232,6 +1377,18 @@ export function FileSidebar() {
               setNewFileError(null);
             }}
             error={newFileError}
+          />
+        )}
+
+        {newFolderModalDir && (
+          <NewFolderModal
+            dirPath={newFolderModalDir}
+            onConfirm={name => void handleNewFolderConfirm(name)}
+            onCancel={() => {
+              setNewFolderModalDir(null);
+              setNewFolderError(null);
+            }}
+            error={newFolderError}
           />
         )}
 
