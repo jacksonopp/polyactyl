@@ -1,0 +1,292 @@
+---
+title: httpYac Syntax
+description: A practical reference for writing .http request files that work with Polyactyl.
+---
+
+Polyactyl uses [httpYac](https://httpyac.github.io/) as its HTTP engine. Any `.http` or `.rest` file that works with the httpYac CLI or its VS Code extension will work in Polyactyl.
+
+## Basic Request
+
+```http
+GET https://api.example.com/users
+```
+
+Or with a body:
+
+```http
+POST https://api.example.com/users
+Content-Type: application/json
+
+{
+  "name": "Alice",
+  "email": "alice@example.com"
+}
+```
+
+The blank line between headers and body is **required**.
+
+## Request Methods
+
+All standard HTTP methods are supported:
+
+```http
+GET    https://api.example.com/users
+POST   https://api.example.com/users
+PUT    https://api.example.com/users/1
+PATCH  https://api.example.com/users/1
+DELETE https://api.example.com/users/1
+HEAD   https://api.example.com/users
+OPTIONS https://api.example.com/users
+```
+
+## Request Separator
+
+Use `###` to separate multiple requests in one file. Everything after `###` and up to the next `###` (or end of file) is one request.
+
+```http
+GET https://api.example.com/users
+
+###
+
+GET https://api.example.com/posts
+```
+
+You can add a name comment after `###`:
+
+```http
+### Get all users
+GET https://api.example.com/users
+
+### Create user
+POST https://api.example.com/users
+Content-Type: application/json
+
+{ "name": "Alice" }
+```
+
+## Variables
+
+### File-level Variables
+
+```http
+@baseUrl = https://api.example.com
+@version = v2
+
+GET {{baseUrl}}/{{version}}/users
+```
+
+### Environment Variables
+
+Variables provided by your environment config (`httpyac.config.js`, `.httpyac.json`, `http-client.env.json`, or a `.env` file — see [Environments](/guides/environments/)):
+
+```http
+GET {{apiBase}}/users
+Authorization: Bearer {{authToken}}
+```
+
+### Response Variables
+
+Capture values from a response to use in a later request:
+
+```http
+### Login
+POST {{apiBase}}/auth/login
+Content-Type: application/json
+
+{ "email": "alice@example.com", "password": "{{password}}" }
+
+{%
+  client.global.set("token", response.parsedBody.token);
+%}
+
+###
+
+### Get profile (uses token from login)
+GET {{apiBase}}/me
+Authorization: Bearer {{token}}
+```
+
+## Request Metadata
+
+Add metadata using `# @key value` comments before the request line:
+
+```http
+# @name loginRequest
+# @timeout 30000
+POST {{apiBase}}/auth/login
+Content-Type: application/json
+
+{ "email": "{{email}}", "password": "{{password}}" }
+```
+
+Common metadata tags:
+
+| Tag | Description |
+|---|---|
+| `@name <id>` | Give the request an ID so later requests can reference its response |
+| `@timeout <ms>` | Override the request timeout in milliseconds |
+| `@no-redirect` | Disable automatic redirect following |
+| `@no-log` | Suppress this request from logs |
+| `@loop <n>` | Run this request `n` times |
+| `@auth <type>` | Enable built-in auth (e.g., `oauth2`, `basic`, `digest`) |
+| `@disabled` | Skip this request when running all requests in a file |
+
+## Headers
+
+```http
+GET https://api.example.com/data
+Accept: application/json
+Authorization: Bearer {{token}}
+X-Custom-Header: my-value
+X-Request-Id: {{$guid}}
+```
+
+## Request Body
+
+### Inline JSON
+
+```http
+POST https://api.example.com/users
+Content-Type: application/json
+
+{
+  "name": "Alice",
+  "email": "alice@example.com"
+}
+```
+
+### Form Data
+
+```http
+POST https://api.example.com/form
+Content-Type: application/x-www-form-urlencoded
+
+name=Alice&email=alice%40example.com
+```
+
+### Multipart Form
+
+```http
+POST https://api.example.com/upload
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="photo.jpg"
+Content-Type: image/jpeg
+
+< ./photo.jpg
+--boundary--
+```
+
+### File Import
+
+```http
+POST https://api.example.com/upload
+Content-Type: application/octet-stream
+
+< ./payload.bin
+```
+
+### GraphQL
+
+```http
+POST https://api.example.com/graphql
+Content-Type: application/json
+
+query GetUser($id: ID!) {
+  user(id: $id) {
+    id
+    name
+    email
+  }
+}
+
+{
+  "id": "42"
+}
+```
+
+httpYac automatically wraps GraphQL queries in the `{"query": "...", "variables": {...}}` JSON envelope.
+
+## Scripts
+
+Scripts run JavaScript before or after a request. Use the `{%` ... `%}` block syntax:
+
+### Pre-request Script
+
+```http
+{%
+  // Runs before the request is sent
+  request.headers["X-Timestamp"] = Date.now().toString();
+%}
+GET https://api.example.com/data
+```
+
+### Post-request Script
+
+```http
+POST https://api.example.com/auth/token
+Content-Type: application/json
+
+{ "client_id": "{{clientId}}", "client_secret": "{{clientSecret}}" }
+
+{%
+  // Runs after the response is received
+  const body = response.parsedBody;
+  client.global.set("accessToken", body.access_token);
+  client.global.set("tokenExpiry", body.expires_in);
+%}
+```
+
+## Test Assertions
+
+```http
+GET https://api.example.com/users/1
+
+{%
+  test("status is 200", () => {
+    expect(response.status).toBe(200);
+  });
+
+  test("response has id", () => {
+    expect(response.parsedBody.id).toBe(1);
+  });
+
+  test("content-type is JSON", () => {
+    expect(response.headers["content-type"]).toContain("application/json");
+  });
+%}
+```
+
+Results appear in the **Tests** panel of the Response Viewer.
+
+## Built-in Dynamic Variables
+
+httpYac provides several built-in variables you can use anywhere:
+
+| Variable | Description |
+|---|---|
+| `{{$guid}}` | A new random UUID v4 |
+| `{{$timestamp}}` | Current Unix timestamp (seconds) |
+| `{{$isoTimestamp}}` | Current ISO 8601 datetime string |
+| `{{$randomInt}}` | A random integer |
+| `{{$processEnv <NAME>}}` | Value of a system environment variable |
+| `{{$env <NAME>}}` | Alias for `$processEnv` |
+| `{{$dotenv <NAME>}}` | Value from a `.env` file |
+
+Example:
+
+```http
+POST https://api.example.com/events
+Content-Type: application/json
+
+{
+  "eventId": "{{$guid}}",
+  "timestamp": "{{$isoTimestamp}}",
+  "source": "{{$processEnv USER}}"
+}
+```
+
+:::tip
+For the full httpYac feature set including OAuth 2.0, GRPC, WebSocket, and more, see the [official httpYac documentation](https://httpyac.github.io/guide/).
+:::

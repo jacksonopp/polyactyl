@@ -1,0 +1,85 @@
+---
+title: File Browser
+description: Navigate, manage, and search your .http files with the Polyactyl sidebar.
+---
+
+The **File Browser** is the left-hand sidebar. It recursively scans any directory you open and surfaces every `.http`, `.rest`, configuration, and environment file in a tree view.
+
+## Opening a Directory
+
+Click the folder icon at the top of the sidebar, or press <kbd>⌘</kbd><kbd>O</kbd> (macOS) / <kbd>Ctrl</kbd><kbd>O</kbd> (Windows/Linux).
+
+Polyactyl **remembers** the last directory you had open and restores it automatically on next launch.
+
+## File Types
+
+The sidebar colour-codes files by type:
+
+| Icon | Type | Extensions |
+|---|---|---|
+| 🌐 | HTTP request file | `.http`, `.rest` |
+| ⚙️ | httpYac config | `httpyac.config.js`, `.httpyac.js`, `.httpyac.json` |
+| 🔑 | Environment file | `http-client.env.json`, `http-client.private.env.json`, `.env`, `*.env` |
+
+Directories that contain no HTTP files at any depth are hidden by default. Toggle their visibility with the **Show Empty Folders** button at the top of the sidebar.
+
+## File Operations
+
+Right-click any file or folder to open the context menu:
+
+| Action | Description |
+|---|---|
+| **New File** | Create a new `.http` file in the clicked directory |
+| **Rename** | Rename the file or folder in-place |
+| **Duplicate** | Create a copy of the file in the same directory |
+| **Delete** | Permanently delete the file (no undo) |
+
+You can also:
+
+- **Drag and drop** files between directories in the sidebar tree
+- **Single-click** a file to open it in a new editor tab
+- **Double-click** a folder to expand or collapse it
+
+:::caution
+Delete is permanent — there is no trash/recycle bin step. Make sure you mean it!
+:::
+
+## Command Palette
+
+Polyactyl has two command palette modes:
+
+**File search** — Press <kbd>⌘</kbd><kbd>P</kbd> (macOS) / <kbd>Ctrl</kbd><kbd>P</kbd> (Windows/Linux), or <kbd>⌘</kbd><kbd>K</kbd> / <kbd>Ctrl</kbd><kbd>K</kbd> from the file sidebar. Start typing any part of a filename to fuzzy-search across the entire tree and jump to a file instantly.
+
+**Command mode** — Press <kbd>⌘</kbd><kbd>Shift</kbd><kbd>P</kbd> (macOS) / <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>P</kbd> (Windows/Linux) to run app-level actions such as git commands without touching the mouse.
+
+## Monorepo Support
+
+Polyactyl is designed to work well with monorepos. When you open a root directory,
+it walks the entire subtree looking for `.http`, `.env`, and both `.js` and `.json` flavored httpYac config files. 
+As long as your files are nested under the open directory — no matter how deep — they will appear in the sidebar.
+
+```
+my-monorepo/
+├── packages/
+│   ├── auth-service/
+│   │   └── requests/
+│   │       ├── login.http         ← visible
+│   │       ├── logout.http        ← visible
+│   │       └── httpyac.config.js  ← visible
+│   ├── billing-service/
+│   │   └── requests/
+│   │       └── invoices.http      ← visible
+│   └── user-service/              ← contains no .http files, so this directory will be hidden
+└── scripts/
+    └── seed.http                  ← visible
+```
+
+:::tip
+If a deeply-nested directory is expanding too much, you can drag files up to a parent directory or create a flatter structure.
+:::
+
+## File Watching
+
+The sidebar watches the open directory for changes on disk. 
+New files created outside Polyactyl (e.g., from your terminal) will appear automatically without needing to refresh.
+This is also true when pulling from git, changing branches, etc.

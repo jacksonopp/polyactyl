@@ -1,0 +1,69 @@
+---
+title: Request Runner
+description: Send HTTP requests and entire files with real-time progress feedback.
+---
+
+The **Request Runner** lives in the **Toolbar** at the top of the editor area. It lets you send the currently active request or every request in the open file.
+
+## Sending a Request
+
+### Send the Active Request
+
+Click the **Send** button (or press <kbd>⌘</kbd><kbd>Enter</kbd> / <kbd>Ctrl</kbd><kbd>Enter</kbd>) to execute whichever request the cursor is in. httpYac parses the file, finds the request closest to the cursor position, and runs it.
+
+### Send All Requests in a File
+
+Click the **Send All** button (or press <kbd>⌘</kbd><kbd>Shift</kbd><kbd>Enter</kbd> / <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>Enter</kbd>) to run every request in the current file in order. Results are streamed into the Response Viewer as each request completes.
+
+## Selecting Environments
+
+Before sending, choose one or more environments from the **Environment Selector** dropdown in the toolbar. Polyactyl reads the available environments from any files httpYac discovers in the active file's directory or its parents:
+
+- `httpyac.config.js`, `.httpyac.js`, or `.httpyac.json` — httpYac native config (most projects use one of these)
+- `.env` files — standard dotenv variables loaded as a base environment
+- `http-client.env.json` and `http-client.private.env.json` — IntelliJ-style HTTP client environments
+
+You can select **multiple environments simultaneously** — their variables are merged, with later selections taking precedence on conflicts.
+
+See [Environments](/guides/environments/) for full details on each format.
+
+## Real-Time Progress
+
+When a request is running, the toolbar shows a spinner and the name of the currently executing request. For multi-request files you can watch progress in real time as each request completes or errors.
+
+Requests can be **cancelled** mid-flight with the **Stop** button that appears during execution.
+
+## Redirects
+
+httpYac follows HTTP redirects automatically. The final response shown is the last redirect destination. The full redirect chain is visible in the Timings panel.
+
+## Authentication
+
+httpYac supports a wide range of auth mechanisms via file-level metadata:
+
+```http
+# Basic auth
+GET https://api.example.com/protected
+Authorization: Basic {{username}}:{{password}}
+
+###
+
+# Bearer token
+GET https://api.example.com/protected
+Authorization: Bearer {{accessToken}}
+
+###
+
+# OAuth 2.0 client credentials (httpYac handles the token exchange)
+# @auth oauth2
+# @authConfig clientId=my-client clientSecret={{secret}} tokenEndpoint=https://auth.example.com/token
+GET https://api.example.com/protected
+```
+
+:::tip
+Store secrets like API keys and passwords in a gitignored file — either `http-client.private.env.json` (IntelliJ style) or a local `.env` file — and never commit them.
+:::
+
+## Error Handling
+
+If a request fails (network error, timeout, DNS failure), the Response Viewer displays the error message in the **Status** panel. The editor continues to be editable — fix the request and send again.

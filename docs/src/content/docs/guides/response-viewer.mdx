@@ -1,0 +1,88 @@
+---
+title: Response Viewer
+description: Inspect HTTP responses with collapsible panels, JSON highlighting, and timing breakdowns.
+---
+
+The **Response Viewer** occupies the right-hand pane. After a request is sent, it displays the full response broken into collapsible panels so you can focus on exactly what you need.
+
+## Panels
+
+Click any panel header to expand or collapse it. All panels default to expanded.
+
+### Status
+
+Shows the HTTP status code with a colour-coded badge:
+
+| Range | Color | Meaning |
+|---|---|---|
+| `1xx` | Blue | Informational |
+| `2xx` | Green | Success |
+| `3xx` | Yellow | Redirection |
+| `4xx` | Red | Client error |
+| `5xx` | Red | Server error |
+
+The status line also shows the HTTP version and reason phrase (e.g., `HTTP/1.1 200 OK`).
+
+### Request
+
+Displays the **exact request** that was sent to the server after all variables have been interpolated and any pre-request scripts have run. This is useful for debugging — you can verify that auth headers, computed values, and environment substitutions look correct.
+
+### Response Headers
+
+A table of all response headers returned by the server. Click a header name or value to copy it.
+
+### Body
+
+The response body rendered with syntax highlighting:
+
+- **JSON** responses are pretty-printed and syntax-highlighted
+- **GraphQL** responses (JSON with a `data` key) show query highlighting in the request echo and JSON highlighting in the body
+- **Text** and **HTML** bodies are shown as plain text
+- **Binary** bodies show a hex preview with the content length
+
+:::note
+Very large response bodies (> ~1 MB) are truncated in the viewer for performance. The full body is still available via copy.
+:::
+
+### Timings
+
+A breakdown of how long each phase of the request took:
+
+| Phase | Description |
+|---|---|
+| DNS Lookup | Time to resolve the hostname |
+| TCP Connect | Time to establish the TCP connection |
+| TLS Handshake | Time for TLS negotiation (HTTPS only) |
+| TTFB | Time to first byte (server processing + network) |
+| Download | Time to receive the full response body |
+| **Total** | End-to-end elapsed time |
+
+The timing bars are proportional, so you can visually see which phase is the bottleneck.
+
+### Tests
+
+If your `.http` file includes [httpYac test assertions](https://httpyac.github.io/guide/scripting.html#tests), the Tests panel shows a pass/fail summary for each assertion. Green checkmarks indicate passing tests; red Xs indicate failures with a description of what was expected.
+
+Example test in an `.http` file:
+
+```http
+GET https://api.example.com/users/1
+
+{%
+  test("status is 200", () => {
+    expect(response.status).toBe(200);
+  });
+  test("has id field", () => {
+    expect(response.parsedBody.id).toBeDefined();
+  });
+%}
+```
+
+## Copying Response Data
+
+- **Copy Body** — copies the raw response body to the clipboard
+- **Copy as cURL** — copies the sent request as a `curl` command (useful for sharing with colleagues or debugging outside Polyactyl)
+
+:::tip
+The Response Viewer pane can be resized by dragging the divider between it and the editor.
+:::

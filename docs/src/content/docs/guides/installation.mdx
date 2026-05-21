@@ -1,0 +1,97 @@
+---
+title: Installation
+description: Download and install Polyactyl on macOS, Windows, or Linux.
+---
+
+Polyactyl ships as a pre-built native app for macOS, Windows, and Linux. No Node.js or npm required to run it.
+
+## Download
+
+Head to the [**Releases page**](https://github.com/jacksonopp/polyactyl/releases) on GitHub and download the latest version for your platform.
+
+| Platform | File | Architecture |
+|---|---|---|
+| macOS | `Polyactyl-x.x.x-mac-universal.dmg` | Intel + Apple Silicon (recommended) |
+| macOS | `Polyactyl-x.x.x-mac-arm64.dmg` | Apple Silicon only |
+| macOS | `Polyactyl-x.x.x-mac-x64.dmg` | Intel only |
+| Windows | `Polyactyl-x.x.x-win.exe` | x64 (NSIS installer) |
+| Linux | `Polyactyl-x.x.x-linux.AppImage` | x86_64 AppImage |
+
+## Install Instructions
+
+### macOS
+
+1. Download the `.dmg` file (use the `universal` build if unsure)
+2. Open the `.dmg` and drag **Polyactyl** to your **Applications** folder
+3. On first launch, macOS may show a security warning because the app is not notarized — right-click the app and choose **Open**, then confirm
+
+:::caution
+If macOS says the app is damaged, run:
+```bash
+xattr -cr /Applications/Polyactyl.app
+```
+Then try launching again.
+:::
+
+### Windows
+
+1. Download the `.exe` installer
+2. Run the installer — it will install Polyactyl and add a Start Menu shortcut
+3. Launch **Polyactyl** from the Start Menu or desktop shortcut
+
+:::note
+Windows SmartScreen may show a warning on first run because the binary is unsigned. Click **More info → Run anyway**.
+:::
+
+### Linux
+
+1. Download the `.AppImage` file
+2. Make it executable:
+   ```bash
+   chmod +x Polyactyl-*.AppImage
+   ```
+3. Run it:
+   ```bash
+   ./Polyactyl-*.AppImage
+   ```
+
+You can also integrate it with your desktop environment using [AppImageLauncher](https://github.com/TheAssassin/AppImageLauncher).
+
+## First Launch
+
+When you open Polyactyl for the first time you'll see a three-panel layout:
+
+```
+┌──────────────┬────────────────────┬──────────────────┐
+│  File        │   Request Editor   │  Response        │
+│  Browser     │                    │  Viewer          │
+│              │                    │                  │
+└──────────────┴────────────────────┴──────────────────┘
+```
+
+Click the **Open Folder** button in the sidebar (or use <kbd>⌘</kbd><kbd>O</kbd> / <kbd>Ctrl</kbd><kbd>O</kbd>) to open a directory containing your `.http` files.
+
+:::tip
+Don't have any `.http` files yet? Check out the [httpYac Syntax](/reference/httpyac-syntax/) reference to write your first request.
+:::
+
+## Building from Source
+
+If you'd rather build from source:
+
+```bash
+git clone https://github.com/jacksonopp/polyactyl.git
+cd polyactyl
+npm install
+npm run dev          # start in dev / hot-reload mode
+```
+
+To produce a distributable:
+
+```bash
+npm run build:mac    # macOS .dmg (arm64, x64, universal)
+npm run build:win    # Windows .exe (NSIS)
+npm run build:linux  # Linux .AppImage
+```
+
+Built artifacts are written to `dist-electron/`.

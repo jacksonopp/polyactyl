@@ -1,0 +1,46 @@
+---
+title: Polyactyl
+description: Desktop HTTP client powered by httpYac — built for developers who live in .http files.
+template: splash
+hero:
+  tagline: A fast, keyboard-friendly desktop HTTP client powered by httpYac — built for developers who live in .http files.
+  image:
+    html: '<img src="/poly-full-body.png" alt="Polly the polydactyl cat mascot" style="width:min(70%,20rem);height:auto;object-fit:contain;margin-inline:auto;display:block;" />'
+  actions:
+    - text: Get Started
+      link: /guides/introduction/
+      icon: right-arrow
+      variant: primary
+    - text: Download
+      link: https://github.com/jacksonopp/polyactyl/releases
+      icon: external
+      variant: secondary
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## What is Polyactyl?
+
+Polyactyl wraps the powerful [httpYac](https://httpyac.github.io/) engine in a native desktop application. Browse your project, edit `.http` request files with full syntax highlighting, send requests with one keystroke, and inspect responses — all inside a sleek dark interface that stays out of your way.
+
+<CardGrid stagger>
+  <Card title="File Browser" icon="document">
+    Recursively discovers `.http` and `.rest` files across your entire project with drag-and-drop file management and a command palette.
+  </Card>
+  <Card title="Rich Editor" icon="pencil">
+    Syntax highlighting for HTTP, GraphQL, JSON, JavaScript, and dotenv. Multi-tab editing with scrollable tabs.
+  </Card>
+  <Card title="Request Runner" icon="rocket">
+    Send individual requests or entire files. Select multiple environments simultaneously and watch real-time progress.
+  </Card>
+  <Card title="Response Viewer" icon="information">
+    Collapsible panels for Status, Request, Response Headers, Body, Timings, and Tests. JSON and GraphQL highlighting built in.
+  </Card>
+  <Card title="Environments" icon="setting">
+    Full httpYac environment support — use `httpyac.config.js`, `.httpyac.json`, `.env`, or IntelliJ-style `http-client.env.json` files and switch contexts instantly.
+  </Card>
+  <Card title="Git Integration" icon="github">
+    Live branch name, ahead/behind count, and staged/unstaged file counts displayed right in the status bar.
+  </Card>
+</CardGrid>
+

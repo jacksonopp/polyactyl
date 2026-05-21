@@ -1,0 +1,43 @@
+---
+title: Introduction
+description: What is Polyactyl and why should you use it?
+---
+
+<p align="center">
+  <img src="/poly-shoulders-up.png" alt="Polly the polydactyl cat" width="140" />
+</p>
+
+**Polyactyl** is a desktop HTTP client built for developers who prefer writing requests in plain `.http` files rather than clicking through a GUI. It wraps the battle-tested [httpYac](https://httpyac.github.io/) engine in a fast, keyboard-driven interface so you can:
+
+- **Browse** your project and find every `.http` and `.rest` file instantly
+- **Edit** requests with full syntax highlighting, multi-tab support, and variable completion
+- **Run** requests against multiple environments in one click
+- **Inspect** responses with pretty-printed JSON, GraphQL highlighting, and detailed timing breakdowns
+
+## Meet Polly
+
+The app's mascot is **Polly** — a polydactyl (many-toed) cat. Like a polydactyl cat, Polyactyl does more than you'd expect from something this small.
+
+## Why `.http` files?
+
+`.http` files are plain text. That means they:
+
+- **Live in your repo** alongside the code they test
+- **Work with version control** — diffs are readable, reviews are meaningful
+- **Run anywhere** — httpYac also has a CLI (`httpyac`) and a VS Code extension, so your team can run the same files without opening Polyactyl
+
+## Core Technology
+
+Polyactyl is built with:
+
+| Layer | Technology |
+|---|---|
+| Shell | [Electron](https://www.electronjs.org/) |
+| UI | [React](https://react.dev/) + [Vite](https://vitejs.dev/) |
+| HTTP engine | [httpYac](https://httpyac.github.io/) |
+| Editor | [CodeMirror 6](https://codemirror.net/) |
+| State | [Zustand](https://zustand-demo.pmnd.rs/) |
+
+:::tip
+Ready to install? Head to the [Installation](/guides/installation/) page to download Polyactyl for your platform.
+:::

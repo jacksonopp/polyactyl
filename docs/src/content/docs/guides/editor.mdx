@@ -1,0 +1,91 @@
+---
+title: Editor
+description: Write and edit HTTP requests with full syntax highlighting and multi-tab support.
+---
+
+The **Request Editor** is the center pane. It's a fully-featured code editor built on [CodeMirror 6](https://codemirror.net/) with syntax highlighting tailored for `.http` files.
+
+## Multi-Tab Editing
+
+Every file you click in the sidebar opens in its own **tab** at the top of the editor pane. Tabs scroll horizontally when there are too many to fit, so you can keep multiple files open simultaneously.
+
+- Click a tab to switch to it
+- Middle-click (or click the ✕ button on the tab) to close it
+- Tabs remember unsaved changes — a dot indicator appears next to the filename when a file has unsaved modifications
+
+:::note
+Polyactyl does not auto-save files. Use <kbd>⌘</kbd><kbd>S</kbd> / <kbd>Ctrl</kbd><kbd>S</kbd> to save manually.
+:::
+
+## Syntax Highlighting
+
+The editor automatically detects the language based on content and file extension and applies appropriate highlighting:
+
+| Language | Trigger |
+|---|---|
+| **HTTP** | `.http`, `.rest` files |
+| **JSON** | JSON response bodies, `.json` config files |
+| **JavaScript** | Pre/post-request scripts in httpYac (`< {% ... %}`) |
+| **GraphQL** | GraphQL query bodies inside `.http` files |
+| **dotenv** | `.env`, `*.env` files |
+
+## httpYac Features
+
+Because Polyactyl uses httpYac as its engine, the editor supports the full httpYac file format:
+
+### Variables
+
+```http
+@baseUrl = https://api.example.com
+@token = my-secret-token
+
+GET {{baseUrl}}/users
+Authorization: Bearer {{token}}
+```
+
+### Multiple Requests in One File
+
+Separate requests with `###`:
+
+```http
+GET https://api.example.com/users
+
+###
+
+POST https://api.example.com/users
+Content-Type: application/json
+
+{
+  "name": "Alice",
+  "email": "alice@example.com"
+}
+```
+
+### Pre/Post-Request Scripts
+
+```http
+GET https://api.example.com/token
+
+{%
+  client.global.set("authToken", response.body.token);
+%}
+```
+
+### File Imports
+
+```http
+POST https://api.example.com/upload
+Content-Type: application/octet-stream
+
+< ./payload.bin
+```
+
+See the [httpYac Syntax reference](/reference/httpyac-syntax/) for the complete feature set.
+
+## Resizing Panes
+
+Drag the vertical divider between the **Editor** and **Response** panes to resize them. The sidebar divider can also be dragged. All pane sizes are remembered within the current session.
+
+:::tip
+You can collapse the response pane almost entirely while writing requests, then expand it when you're ready to inspect results.
+:::

@@ -1,0 +1,164 @@
+---
+title: Environments
+description: Manage and switch between environments using httpYac's environment system.
+---
+
+Polyactyl uses **httpYac's environment system** to let you parameterise requests with different values for development, staging, and production — or any other context you need.
+
+## How Environments Work
+
+Variables in `.http` files are written as `{{variableName}}`. When you send a request, httpYac resolves each variable from the selected environment(s).
+
+Example:
+
+```http
+@baseUrl = {{apiBase}}
+
+GET {{baseUrl}}/users
+Authorization: Bearer {{authToken}}
+```
+
+With an environment that provides `apiBase` and `authToken`, those placeholders are filled in before the request is sent.
+
+## Environment Files
+
+httpYac discovers environments from several file types. Projects typically use one of two styles — **httpYac native config** or **IntelliJ-style JSON** — but both work side by side.
+
+### httpYac Native Config
+
+The most flexible option. Supports custom variable providers, request hooks, scripting, and fine-grained environment control.
+
+#### `httpyac.config.js` / `.httpyac.js`
+
+A JavaScript config file placed in your project root or any parent directory:
+
+```js
+// httpyac.config.js
+module.exports = {
+  environments: {
+    dev: {
+      apiBase: 'http://localhost:3000',
+      authToken: 'dev-token-123',
+    },
+    staging: {
+      apiBase: 'https://staging.api.example.com',
+      authToken: 'staging-token-abc',
+    },
+    production: {
+      apiBase: 'https://api.example.com',
+      authToken: 'prod-token-xyz',
+    },
+  },
+};
+```
+
+Using a JS file lets you derive values dynamically, read from `process.env`, or import secrets from a local file that is gitignored.
+
+#### `.httpyac.json`
+
+A JSON equivalent for projects that prefer a static, non-executable config:
+
+```json
+{
+  "environments": {
+    "dev": {
+      "apiBase": "http://localhost:3000",
+      "authToken": "dev-token-123"
+    },
+    "staging": {
+      "apiBase": "https://staging.api.example.com",
+      "authToken": "staging-token-abc"
+    }
+  }
+}
+```
+
+See the [httpYac Configuration docs](https://httpyac.github.io/guide/config.html) for the full reference including hooks, variable providers, and more.
+
+### `.env` Files
+
+httpYac reads standard dotenv files. Place a `.env` file in the same directory as your `.http` file or any parent directory:
+
+```bash
+# .env
+API_BASE=http://localhost:3000
+AUTH_TOKEN=dev-token-123
+```
+
+Variables in `.env` files are loaded as a nameless base environment available to all requests.
+
+### IntelliJ-Style HTTP Client Files
+
+If your project already uses JetBrains HTTP Client environment files, Polyactyl supports those too.
+
+#### `http-client.env.json`
+
+Place in your project root alongside your `.http` files:
+
+```json
+{
+  "dev": {
+    "apiBase": "http://localhost:3000",
+    "authToken": "dev-token-123"
+  },
+  "staging": {
+    "apiBase": "https://staging.api.example.com",
+    "authToken": "staging-token-abc"
+  },
+  "production": {
+    "apiBase": "https://api.example.com",
+    "authToken": "prod-token-xyz"
+  }
+}
+```
+
+#### `http-client.private.env.json`
+
+A **gitignored** companion for secrets. Same format as `http-client.env.json` — httpYac merges it on top, so private values override public ones.
+
+```json
+{
+  "production": {
+    "authToken": "super-secret-prod-token"
+  }
+}
+```
+
+:::caution
+Add `http-client.private.env.json` to your `.gitignore`. It often contains credentials and should never be committed.
+:::
+
+## Selecting Environments in Polyactyl
+
+The **Environment Selector** dropdown is in the toolbar above the editor. It lists all environments discovered from files in (and above) the directory of the currently active file.
+
+- Select an environment to activate it
+- **Select multiple environments** — click each one you want; they are merged in selection order (later selection wins on conflicts)
+- Deselect all to send requests with no environment (only inline `@variable` definitions apply)
+
+:::tip
+A common pattern is to combine a shared `staging` environment with a personal `my-overrides` environment that sets things like your user ID or auth token, without modifying the shared file.
+:::
+
+## Inline Variables
+
+You can define variables directly in `.http` files using `@variable = value` lines. These are always available regardless of the selected environment and can reference environment variables:
+
+```http
+@baseUrl = {{apiBase}}/v2
+@userId = 42
+
+GET {{baseUrl}}/users/{{userId}}
+```
+
+## Variable Precedence
+
+When multiple sources define the same variable, httpYac resolves them in this order (higher wins):
+
+1. Inline `@variable` definitions in the file
+2. Later-selected environment (when multiple are active)
+3. Earlier-selected environment
+4. `http-client.private.env.json` values
+5. `http-client.env.json` values
+6. `.env` file values
+7. `httpyac.config.js` / `.httpyac.json` environment values

@@ -6,14 +6,14 @@
 
 > Meet **Polly** — the many-toed cat behind Polyactyl, a desktop HTTP client built for developers who live in `.http` files.
 
-Polyactyl wraps the powerful [httpYac](https://httpyac.github.io/) engine in a fast, keyboard-friendly GUI. Browse your monorepo, edit requests with syntax highlighting, fire them off, and inspect the response — all without leaving your editor workflow.
+Polyactyl wraps the powerful [httpYac](https://httpyac.github.io/) engine in a fast, keyboard-friendly GUI. Browse your project, edit requests with syntax highlighting, fire them off, and inspect the response — all without leaving your editor workflow.
 
 ---
 
 ## Features
 
 ### File Browser
-- Automatically finds `.http` and `.rest` files in any directory or monorepo
+- Automatically finds `.http` and `.rest` files in any directory or project
 - Toggle visibility of empty folders (hidden by default)
 - Create, rename, duplicate, and delete files right from the sidebar
 - Drag files between directories

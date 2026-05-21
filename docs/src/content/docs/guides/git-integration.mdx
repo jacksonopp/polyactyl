@@ -1,0 +1,49 @@
+---
+title: Git Integration
+description: Track your repository status without leaving Polyactyl.
+---
+
+Polyactyl includes a **Git Status Bar** at the bottom of the file sidebar. It gives you a live snapshot of your repository state so you never have to switch to a terminal just to check what branch you're on.
+
+## What the Status Bar Shows
+
+The status bar displays:
+
+| Element | Description |
+|---|---|
+| **Branch name** | The currently checked-out branch (e.g., `main`, `feature/my-feature`) |
+| **↑ ahead** | Number of commits ahead of the upstream branch |
+| **↓ behind** | Number of commits behind the upstream branch |
+| **Staged** | Count of files staged for commit |
+| **Modified** | Count of tracked files with unstaged changes |
+| **Untracked** | Count of new files not yet added to git |
+
+Example status bar:
+
+```
+⎇ feature/auth  ↑2 ↓0  S:1  M:3  ?:2
+```
+
+## Detection
+
+Polyactyl walks up the directory tree from the open folder to find a `.git` directory. This means:
+
+- If you open a **subdirectory** of a git repo, the status bar still works — it finds the repo root automatically
+- If the directory is **not inside a git repo**, the status bar is hidden
+
+:::note
+The status bar requires `git` to be installed and available on your `PATH`. On macOS this usually means Xcode Command Line Tools. On Windows, install [Git for Windows](https://git-scm.com/download/win).
+:::
+
+## Refresh
+
+The status bar updates automatically when:
+
+- You open a new directory
+- Files in the working tree change (via the file watcher)
+
+It does **not** auto-refresh on a timer, so if you make git operations outside Polyactyl (e.g., `git commit` in the terminal), you may need to re-open the directory or trigger a file change to see updated counts.
+
+## Capabilities
+
+Polyactyl supports essential git operations directly from the UI. You can perform commits, pull, push, fetch, and switch branches without leaving the app. For more advanced operations, use your terminal or a dedicated git GUI.

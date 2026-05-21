@@ -1,0 +1,89 @@
+/* ── Polyactyl Docs — Catppuccin Mocha Theme ──────────── */
+
+/* Force dark mode for the entire site */
+:root {
+  color-scheme: dark;
+}
+
+:root,
+[data-theme='dark'] {
+  /* Accent — blue (#89b4fa) */
+  --sl-color-accent-low:  #313244;
+  --sl-color-accent:      #89b4fa;
+  --sl-color-accent-high: #cdd6f4;
+
+  /* Backgrounds */
+  --sl-color-bg:             #1e1e2e;
+  --sl-color-bg-sidebar:     #181825;
+  --sl-color-bg-nav:         #181825;
+  --sl-color-bg-inline-code: #23263a;
+  --sl-color-bg-badge:       #313244;
+
+  /* Text */
+  --sl-color-text:        #cdd6f4;
+  --sl-color-text-accent: #89b4fa;
+  --sl-color-text-invert: #1e1e2e;
+
+  /* Hairlines / borders */
+  --sl-color-hairline:       #313244;
+  --sl-color-hairline-light: #2a2d44;
+  --sl-color-hairline-shade: #23263a;
+
+  /* Gray scale mapped to Catppuccin Mocha subcolors */
+  --sl-color-white:  #cdd6f4;
+  --sl-color-gray-1: #b4befe;
+  --sl-color-gray-2: #a6adc8;
+  --sl-color-gray-3: #9399b2;
+  --sl-color-gray-4: #7f849c;
+  --sl-color-gray-5: #6c7086;
+  --sl-color-gray-6: #585b70;
+  --sl-color-gray-7: #45475a;
+  --sl-color-black:  #181825;
+}
+
+/* ── Sidebar ──────────────────────────────────────────── */
+.sidebar-content {
+  background: var(--sl-color-bg-sidebar);
+}
+
+/* ── Navigation bar ───────────────────────────────────── */
+header.header {
+  background: rgba(24, 24, 37, 0.92);
+  border-bottom: 1px solid #313244;
+  backdrop-filter: blur(8px);
+}
+
+/* ── Code blocks ──────────────────────────────────────── */
+pre,
+code {
+  font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+}
+
+/* ── Inline code ──────────────────────────────────────── */
+:not(pre) > code {
+  background: #23263a;
+  color: #cba6f7;
+  border: 1px solid #313244;
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+
+/* ── Callout / aside blocks ───────────────────────────── */
+.starlight-aside--note    { --sl-color-asides-border: #89b4fa; background: rgba(137, 180, 250, 0.08); }
+.starlight-aside--tip     { --sl-color-asides-border: #a6e3a1; background: rgba(166, 227, 161, 0.08); }
+.starlight-aside--caution { --sl-color-asides-border: #f9e2af; background: rgba(249, 226, 175, 0.08); }
+.starlight-aside--danger  { --sl-color-asides-border: #f38ba8; background: rgba(243, 139, 168, 0.08); }
+
+/* ── Keyboard key badges ──────────────────────────────── */
+kbd {
+  display: inline-block;
+  padding: 0.1em 0.45em;
+  font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+  font-size: 0.8em;
+  background: #2a2d44;
+  border: 1px solid #45475a;
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  color: #cdd6f4;
+  white-space: nowrap;
+}
