@@ -4,6 +4,8 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
+	site: 'https://jacksonopp.github.io',
+	base: 'polyactyl',
 	integrations: [
 		starlight({
 			title: 'Polyactyl',
