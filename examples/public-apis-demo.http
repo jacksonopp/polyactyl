@@ -1,0 +1,64 @@
+### PokéAPI - Get Pokémon
+GET https://pokeapi.co/api/v2/pokemon/pikachu
+
+###
+
+### PokéAPI - Get Multiple Pokémon
+GET https://pokeapi.co/api/v2/pokemon?limit=5&offset=0
+
+###
+
+### PokéAPI - Get Type Info
+GET https://pokeapi.co/api/v2/type/electric
+
+###
+
+### OpenWeather - Get List of Cities (public endpoint)
+GET https://openweathermap.org/find?q=London&appid=b6fd43953d41a3deb13d6b8827a1fda2
+
+###
+
+### ReqRes - Get Users
+GET https://reqres.in/api/users
+
+###
+
+### ReqRes - Get Single User
+GET https://reqres.in/api/users/2
+
+###
+
+### ReqRes - Create User
+POST https://reqres.in/api/users
+Content-Type: application/json
+
+{
+  "name": "morpheus",
+  "job": "leader"
+}
+
+###
+
+### ReqRes - Update User
+PUT https://reqres.in/api/users/2
+Content-Type: application/json
+
+{
+  "name": "morpheus",
+  "job": "zion resident"
+}
+
+###
+
+### ReqRes - Delete User
+DELETE https://reqres.in/api/users/2
+
+###
+
+### Dog CEO API - Random Dog Image
+GET https://dog.ceo/api/breeds/image/random
+
+###
+
+### Dog CEO API - List All Breeds
+GET https://dog.ceo/api/breeds/list/all

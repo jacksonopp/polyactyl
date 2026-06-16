@@ -76,11 +76,25 @@ interface OpenHttpFileArgs {
   content?: string;
 }
 
+interface ParsedRegion {
+  id: string;
+  name?: string;
+  method?: string;
+  url?: string;
+  startLine: number;
+  endLine: number;
+  disabled: boolean;
+  isGlobal: boolean;
+}
+
 interface SendArgs extends OpenHttpFileArgs {
   environment?: string[];
   requestName?: string;
   requestLine?: number;
+  runId?: string;
 }
+
+const cancelMap = new Map<string, { canceled: boolean }>();
 
 function showMessage(
   type: 'info' | 'warning' | 'error',
@@ -474,9 +488,32 @@ export function registerIpcHandlers(): void {
     }
   });
 
+  handle<OpenHttpFileArgs, ParsedRegion[]>('http:parse', async (_event, args) => {
+    try {
+      const httpFile = await loadHttpFile(args);
+      return httpFile.httpRegions.map((region, index) => ({
+        id: String(region.id ?? index),
+        name: region.symbol?.name,
+        method: region.request?.method,
+        url: region.request?.url,
+        startLine: region.symbol?.startLine ?? 0,
+        endLine: region.symbol?.endLine ?? (region.symbol?.startLine ?? 0),
+        disabled: !!(region.metaData as Record<string, unknown> | undefined)?.disabled,
+        isGlobal: typeof region.isGlobal === 'function' ? region.isGlobal() : false,
+      }));
+    } catch {
+      return [];
+    }
+  });
+
+  handle<{ runId: string }, void>('http:cancel', async (_event, { runId }) => {
+    const entry = cancelMap.get(runId);
+    if (entry) entry.canceled = true;
+  });
+
   handle<SendArgs, ReturnType<typeof serializeProcessedRegion>[]>(
     'http:send',
-    async (event, { environment, requestLine, requestName, ...fileArgs }) => {
+    async (event, { environment, requestLine, requestName, runId, ...fileArgs }) => {
       const httpFile = await loadHttpFile(fileArgs);
       const processedHttpRegions: httpyac.ProcessedHttpRegion[] = [];
 
@@ -491,11 +528,19 @@ export function registerIpcHandlers(): void {
         };
       }
 
+      if (runId) cancelMap.set(runId, { canceled: false });
+
       const sendContext: httpyac.HttpFileSendContext = {
         httpFile,
         activeEnvironment: environment,
         processedHttpRegions,
         httpRegionPredicate,
+        ...(runId ? {
+          progress: {
+            isCanceled: () => cancelMap.get(runId)?.canceled === true,
+            register: () => () => {},
+          },
+        } : {}),
         logResponse: async (response, httpRegion) => {
           event.sender.send('http:send:progress', {
             type: 'response',
@@ -505,8 +550,24 @@ export function registerIpcHandlers(): void {
         },
       };
 
-      await httpyac.send(sendContext);
+      try {
+        await httpyac.send(sendContext);
+      } finally {
+        if (runId) cancelMap.delete(runId);
+      }
       return processedHttpRegions.map(serializeProcessedRegion);
+    }
+  );
+
+  handle<{ body: string; suggestedName?: string }, string | null>(
+    'response:save',
+    async (_event, { body, suggestedName }) => {
+      const result = await dialog.showSaveDialog({
+        defaultPath: suggestedName,
+      });
+      if (result.canceled || !result.filePath) return null;
+      await fs.writeFile(result.filePath, body, 'utf-8');
+      return result.filePath;
     }
   );
 

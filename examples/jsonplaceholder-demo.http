@@ -1,0 +1,52 @@
+### JSONPlaceholder - Get All Posts
+GET https://jsonplaceholder.typicode.com/posts
+
+###
+
+### JSONPlaceholder - Get Single Post
+GET https://jsonplaceholder.typicode.com/posts/1
+
+###
+
+### JSONPlaceholder - Get Post Comments
+GET https://jsonplaceholder.typicode.com/posts/1/comments
+
+###
+
+### JSONPlaceholder - Create Post
+POST https://jsonplaceholder.typicode.com/posts
+Content-Type: application/json
+
+{
+  "title": "Hello from Polyactyl",
+  "body": "This is a test post created by the Polyactyl HTTP client",
+  "userId": 1
+}
+
+###
+
+### JSONPlaceholder - Update Post
+PUT https://jsonplaceholder.typicode.com/posts/1
+Content-Type: application/json
+
+{
+  "id": 1,
+  "title": "Updated Title",
+  "body": "Updated body content",
+  "userId": 1
+}
+
+###
+
+### JSONPlaceholder - Delete Post
+DELETE https://jsonplaceholder.typicode.com/posts/1
+
+###
+
+### JSONPlaceholder - Get Users
+GET https://jsonplaceholder.typicode.com/users
+
+###
+
+### JSONPlaceholder - Get Todos
+GET https://jsonplaceholder.typicode.com/todos

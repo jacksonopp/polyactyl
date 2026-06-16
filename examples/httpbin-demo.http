@@ -1,0 +1,43 @@
+### HTTPBin - Simple GET
+GET https://httpbin.org/get
+
+###
+
+### HTTPBin - POST with JSON
+POST https://httpbin.org/post
+Content-Type: application/json
+
+{
+  "name": "Polly",
+  "message": "Hello from Polyactyl!"
+}
+
+###
+
+### HTTPBin - Headers
+GET https://httpbin.org/headers
+
+###
+
+### HTTPBin - Status Code (200)
+GET https://httpbin.org/status/200
+
+###
+
+### HTTPBin - Status Code (404)
+GET https://httpbin.org/status/404
+
+###
+
+### HTTPBin - Delay Response (5 seconds)
+GET https://httpbin.org/delay/5
+
+###
+
+### HTTPBin - IP Address
+GET https://httpbin.org/ip
+
+###
+
+### HTTPBin - User Agent
+GET https://httpbin.org/user-agent

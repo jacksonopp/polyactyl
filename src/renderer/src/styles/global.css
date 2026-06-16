@@ -798,8 +798,13 @@ button {
   border-bottom: 1px solid transparent;
 }
 
-.collapsible-panel.open .collapsible-header {
-  border-bottom-color: var(--border);
+.collapsible-panel.open .collapsible-header,
+.collapsible-panel.open .collapsible-header-row {
+  border-bottom: 1px solid var(--border);
+}
+
+.collapsible-panel.open .collapsible-header-row .collapsible-header {
+  border-bottom: none;
 }
 
 .collapsible-header:hover {
@@ -1899,4 +1904,216 @@ button {
   margin-right: 4px;
   flex-shrink: 0;
   align-self: center;
+}
+
+/* ── Cancel button ───────────────────────────────────── */
+
+.btn-cancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent-red);
+  background: transparent;
+  color: var(--accent-red);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-cancel:hover {
+  background: rgba(243, 139, 168, 0.12);
+}
+
+/* ── Gutter send button ──────────────────────────────── */
+
+.cm-send-gutter {
+  width: 20px;
+}
+
+.cm-send-gutter-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent-green);
+  font-size: 10px;
+  cursor: pointer;
+  border-radius: 3px;
+  opacity: 0.7;
+  transition: opacity 0.1s, background 0.1s;
+  line-height: 1;
+}
+
+.cm-send-gutter-btn:hover {
+  opacity: 1;
+  background: rgba(166, 227, 161, 0.15);
+}
+
+/* ── Request outline — sidebar section ───────────────── */
+
+.sidebar-requests-section {
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  max-height: 40%;
+}
+
+.sidebar-section-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  text-align: left;
+  flex-shrink: 0;
+}
+
+.sidebar-section-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.request-outline {
+  overflow-y: auto;
+  padding: 2px 0;
+  flex: 1;
+  min-height: 0;
+}
+
+.request-outline-empty {
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.outline-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 4px 1px 8px;
+}
+
+.outline-item:hover {
+  background: var(--bg-hover);
+}
+
+.outline-item-disabled {
+  opacity: 0.45;
+}
+
+.outline-jump-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+  padding: 3px 4px;
+  border-radius: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.outline-method {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-blue);
+  flex-shrink: 0;
+  min-width: 30px;
+}
+
+.outline-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-secondary);
+}
+
+.outline-run-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent-green);
+  font-size: 10px;
+  cursor: pointer;
+  border-radius: 3px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.outline-item:hover .outline-run-btn {
+  opacity: 0.8;
+}
+
+.outline-run-btn:hover:not(:disabled) {
+  opacity: 1;
+  background: rgba(166, 227, 161, 0.15);
+}
+
+.outline-run-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
+/* ── Collapsible header row (allows actions alongside toggle) ── */
+
+.collapsible-header-row {
+  display: flex;
+  align-items: center;
+}
+
+.collapsible-header-row .collapsible-header {
+  flex: 1;
+}
+
+.collapsible-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 12px;
+  flex-shrink: 0;
+}
+
+/* ── Body action buttons (Copy/Save) ─────────────────── */
+
+.body-action-btn {
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  margin-left: 4px;
+}
+
+.body-action-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }

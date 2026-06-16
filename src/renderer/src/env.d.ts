@@ -64,12 +64,24 @@ export type ProcessedRegion = {
   request: SerializedRequest | null;
 };
 
+export type ParsedRegion = {
+  id: string;
+  name?: string;
+  method?: string;
+  url?: string;
+  startLine: number;
+  endLine: number;
+  disabled: boolean;
+  isGlobal: boolean;
+};
+
 export type SendArgs = {
   filePath: string;
   content?: string;
   environment?: string[];
   requestName?: string;
   requestLine?: number;
+  runId?: string;
 };
 
 export type SendProgressEvent = {
@@ -94,7 +106,10 @@ declare global {
       duplicateFile(filePath: string): Promise<string>;
       revealInFinder(filePath: string): Promise<void>;
       getEnvironments(filePath: string, content?: string): Promise<string[]>;
+      parseRequests(filePath: string, content?: string): Promise<ParsedRegion[]>;
       send(args: SendArgs): Promise<ProcessedRegion[]>;
+      cancelSend(runId: string): Promise<void>;
+      saveResponseBody(body: string, suggestedName?: string): Promise<string | null>;
       onSendProgress(callback: (data: SendProgressEvent) => void): () => void;
       getPreference(key: string): Promise<unknown>;
       setPreference(key: string, value: unknown): Promise<void>;

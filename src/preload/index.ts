@@ -13,6 +13,7 @@ export type SendArgs = {
   environment?: string[];
   requestName?: string;
   requestLine?: number;
+  runId?: string;
 };
 
 const api = {
@@ -39,7 +40,12 @@ const api = {
     ipcRenderer.invoke('shell:revealInFinder', filePath),
   getEnvironments: (filePath: string, content?: string): Promise<string[]> =>
     ipcRenderer.invoke('http:getEnvironments', { filePath, content }),
+  parseRequests: (filePath: string, content?: string): Promise<unknown[]> =>
+    ipcRenderer.invoke('http:parse', { filePath, content }),
   send: (args: SendArgs): Promise<unknown[]> => ipcRenderer.invoke('http:send', args),
+  cancelSend: (runId: string): Promise<void> => ipcRenderer.invoke('http:cancel', { runId }),
+  saveResponseBody: (body: string, suggestedName?: string): Promise<string | null> =>
+    ipcRenderer.invoke('response:save', { body, suggestedName }),
   onSendProgress: (callback: (data: unknown) => void): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
     ipcRenderer.on('http:send:progress', listener);

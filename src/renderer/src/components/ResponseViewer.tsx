@@ -135,11 +135,13 @@ function getStatusClass(status?: number): string {
 function CollapsiblePanel({
   title,
   badge,
+  actions,
   defaultOpen = true,
   children,
 }: {
   title: string;
   badge?: React.ReactNode;
+  actions?: React.ReactNode;
   defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
@@ -147,16 +149,19 @@ function CollapsiblePanel({
 
   return (
     <section className={`collapsible-panel${open ? ' open' : ''}`}>
-      <button
-        type="button"
-        className="collapsible-header"
-        onClick={() => setOpen(v => !v)}
-        aria-expanded={open}
-      >
-        <span className="collapsible-arrow">{open ? '▾' : '▸'}</span>
-        <span className="collapsible-title">{title}</span>
-        {badge && <span className="collapsible-badge">{badge}</span>}
-      </button>
+      <div className="collapsible-header-row">
+        <button
+          type="button"
+          className="collapsible-header"
+          onClick={() => setOpen(v => !v)}
+          aria-expanded={open}
+        >
+          <span className="collapsible-arrow">{open ? '▾' : '▸'}</span>
+          <span className="collapsible-title">{title}</span>
+          {badge && <span className="collapsible-badge">{badge}</span>}
+        </button>
+        {actions && <div className="collapsible-actions">{actions}</div>}
+      </div>
       {open && <div className="collapsible-body">{children}</div>}
     </section>
   );
@@ -278,7 +283,30 @@ function RegionDetails({ region }: { region: ProcessedRegion }) {
           </CollapsiblePanel>
 
           {/* ── Body ── */}
-          <CollapsiblePanel title="Body" badge={<span className="collapsible-badge-muted">{responseSize}</span>}>
+          <CollapsiblePanel
+            title="Body"
+            badge={<span className="collapsible-badge-muted">{responseSize}</span>}
+            actions={responseBody ? (
+              <>
+                <button
+                  type="button"
+                  className="body-action-btn"
+                  title="Copy body to clipboard"
+                  onClick={() => void navigator.clipboard.writeText(responseBody)}
+                >
+                  Copy
+                </button>
+                <button
+                  type="button"
+                  className="body-action-btn"
+                  title="Save body to file"
+                  onClick={() => void window.httpyacAPI.saveResponseBody(responseBody)}
+                >
+                  Save
+                </button>
+              </>
+            ) : undefined}
+          >
             <pre className="body-content">{responseBody || '(empty body)'}</pre>
           </CollapsiblePanel>
 

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import type { FileEntry, FileType, GitStatus, ProcessedRegion } from '../env';
+import type { FileEntry, FileType, GitStatus, ParsedRegion, ProcessedRegion } from '../env';
 
 export interface Tab {
   path: string;
@@ -23,6 +23,10 @@ interface AppState {
   // Environments
   environments: string[];
   activeEnvironment: string[];
+
+  // Parsed request regions for the active file
+  regions: ParsedRegion[];
+  activeRunId: string | null;
 
   // Response — global, always reflects the last send (not per-tab)
   isSending: boolean;
@@ -55,6 +59,9 @@ interface AppState {
   closeTabsToLeft: (index: number) => void;
   closeAllTabs: () => void;
 
+  setRegions: (regions: ParsedRegion[]) => void;
+  setActiveRunId: (id: string | null) => void;
+
   setEnvironments: (envs: string[]) => void;
   setActiveEnvironment: (envs: string[]) => void;
   setSending: (sending: boolean) => void;
@@ -77,6 +84,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   activeTabIndex: 0,
   environments: [],
   activeEnvironment: [],
+  regions: [],
+  activeRunId: null,
   isSending: false,
   processedRegions: [],
   activeRegionIndex: 0,
@@ -184,6 +193,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     }),
 
   closeAllTabs: () => set({ tabs: [], activeTabIndex: 0 }),
+
+  setRegions: regions => set({ regions }),
+  setActiveRunId: id => set({ activeRunId: id }),
 
   setEnvironments: envs =>
     set(state => ({

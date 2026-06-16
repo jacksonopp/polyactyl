@@ -3,12 +3,81 @@ import ReactDOM from 'react-dom';
 
 import { javascript } from '@codemirror/lang-javascript';
 import { json } from '@codemirror/lang-json';
-import { EditorState, Extension, RangeSetBuilder } from '@codemirror/state';
+import { EditorState, Extension, RangeSetBuilder, StateField } from '@codemirror/state';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { Decoration, EditorView, ViewPlugin, lineNumbers } from '@codemirror/view';
+import { Decoration, EditorView, GutterMarker, ViewPlugin, gutter, keymap, lineNumbers } from '@codemirror/view';
 
-import type { FileType } from '../env';
+import type { FileType, ParsedRegion } from '../env';
 import { useAppStore } from '../store/appStore';
+
+// ── Gutter Send markers (T007/T008) ──────────────────────────────────────
+
+const regionsField = StateField.define<ParsedRegion[]>({
+  create: () => [],
+  update: (value) => value,
+});
+
+class SendGutterMarker extends GutterMarker {
+  constructor(private readonly onClick: () => void) { super(); }
+
+  toDOM() {
+    const btn = document.createElement('button');
+    btn.className = 'cm-send-gutter-btn';
+    btn.textContent = '▶';
+    btn.title = 'Send this request';
+    btn.addEventListener('mousedown', e => {
+      e.preventDefault();
+      this.onClick();
+    });
+    return btn;
+  }
+}
+
+function buildSendGutter(
+  getRegions: () => ParsedRegion[],
+  onSend: (region: ParsedRegion) => void
+): Extension {
+  return gutter({
+    class: 'cm-send-gutter',
+    markers(view) {
+      const builder = new RangeSetBuilder<GutterMarker>();
+      const doc = view.state.doc;
+      const sendable = getRegions().filter(r => !r.isGlobal && !r.disabled);
+      for (const region of sendable) {
+        const lineNo = region.startLine + 1; // CodeMirror lines are 1-based
+        if (lineNo < 1 || lineNo > doc.lines) continue;
+        const line = doc.line(lineNo);
+        builder.add(line.from, line.from, new SendGutterMarker(() => onSend(region)));
+      }
+      return builder.finish();
+    },
+    initialSpacer: () => {
+      const span = document.createElement('span');
+      span.textContent = '▶';
+      span.className = 'cm-send-gutter-btn';
+      return new (class extends GutterMarker { toDOM() { return span; } })();
+    },
+  });
+}
+
+// ── Keyboard send (T016) ──────────────────────────────────────────────────
+
+function buildKeymapExtension(
+  getRegions: () => ParsedRegion[],
+  onSend: (region: ParsedRegion | null) => void
+): Extension {
+  return keymap.of([{
+    key: 'Mod-Enter',
+    run(view) {
+      const cursor = view.state.selection.main.head;
+      const cursorLine = view.state.doc.lineAt(cursor).number - 1; // 0-based
+      const regions = getRegions();
+      const region = regions.find(r => cursorLine >= r.startLine && cursorLine <= r.endLine) ?? null;
+      onSend(region);
+      return true;
+    },
+  }]);
+}
 
 function buildDecorations(text: string) {
   const ranges: Array<{ from: number; to: number; decoration: Decoration }> = [];
@@ -343,18 +412,54 @@ function TabBar() {
   );
 }
 
-export function RequestEditor() {
+export function RequestEditor({
+  scrollToLineRef,
+}: {
+  scrollToLineRef?: React.MutableRefObject<((line: number) => void) | null>;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const tabs = useAppStore(state => state.tabs);
   const activeTabIndex = useAppStore(state => state.activeTabIndex);
   const setTabContent = useAppStore(state => state.setTabContent);
   const markTabSaved = useAppStore(state => state.markTabSaved);
+  const regions = useAppStore(state => state.regions);
+  const isSending = useAppStore(state => state.isSending);
+  const activeEnvironment = useAppStore(state => state.activeEnvironment);
+  const setSending = useAppStore(state => state.setSending);
+  const setProcessedRegions = useAppStore(state => state.setProcessedRegions);
+  const setLastError = useAppStore(state => state.setLastError);
+  const clearResponses = useAppStore(state => state.clearResponses);
+  const setActiveRunId = useAppStore(state => state.setActiveRunId);
+  const regionsRef = useRef<ParsedRegion[]>(regions);
+
+  useEffect(() => { regionsRef.current = regions; }, [regions]);
 
   const activeTab = tabs[activeTabIndex] ?? null;
   const activeTabPath = activeTab?.path ?? null;
   const activeTabContent = activeTab?.content ?? '';
   const activeTabFileType = activeTab?.fileType;
+
+  const sendRegion = useCallback(async (region: ParsedRegion | null) => {
+    if (!activeTab || isSending) return;
+    const runId = crypto.randomUUID();
+    setSending(true);
+    setLastError(null);
+    clearResponses();
+    setActiveRunId(runId);
+    try {
+      const args = region
+        ? { filePath: activeTab.path, content: activeTab.content, environment: activeEnvironment.length > 0 ? activeEnvironment : undefined, requestLine: region.startLine, runId }
+        : { filePath: activeTab.path, content: activeTab.content, environment: activeEnvironment.length > 0 ? activeEnvironment : undefined, runId };
+      const results = await window.httpyacAPI.send(args);
+      setProcessedRegions(results);
+    } catch (error) {
+      setLastError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSending(false);
+      setActiveRunId(null);
+    }
+  }, [activeTab, isSending, activeEnvironment, setSending, setLastError, clearResponses, setActiveRunId, setProcessedRegions]);
 
   const saveActiveTab = useCallback(async () => {
     const tab = tabs[activeTabIndex];
@@ -391,11 +496,14 @@ export function RequestEditor() {
     if (!containerRef.current || !activeTabPath) {
       viewRef.current?.destroy();
       viewRef.current = null;
+      if (scrollToLineRef) scrollToLineRef.current = null;
       return;
     }
 
     const capturedIndex = activeTabIndex;
     const langExtensions = getLanguageExtension(activeTabPath, activeTabFileType);
+    const isHttpFile = activeTabFileType === 'http' || /\.(http|rest)$/iu.test(activeTabPath);
+
     const view = new EditorView({
       parent: containerRef.current,
       state: EditorState.create({
@@ -406,6 +514,11 @@ export function RequestEditor() {
           oneDark,
           editorTheme,
           ...langExtensions,
+          ...(isHttpFile ? [
+            regionsField,
+            buildSendGutter(() => regionsRef.current, r => void sendRegion(r)),
+            buildKeymapExtension(() => regionsRef.current, r => void sendRegion(r)),
+          ] : []),
           EditorView.contentAttributes.of({ spellcheck: 'false' }),
           EditorView.updateListener.of(update => {
             if (update.docChanged) {
@@ -416,10 +529,21 @@ export function RequestEditor() {
       }),
     });
 
+    if (scrollToLineRef) {
+      scrollToLineRef.current = (line: number) => {
+        const lineNo = line + 1; // 0-based → 1-based
+        if (lineNo < 1 || lineNo > view.state.doc.lines) return;
+        const pos = view.state.doc.line(lineNo).from;
+        view.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
+        view.focus();
+      };
+    }
+
     viewRef.current = view;
     return () => {
       view.destroy();
       if (viewRef.current === view) viewRef.current = null;
+      if (scrollToLineRef) scrollToLineRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTabPath, activeTabIndex, activeTabFileType, setTabContent]);
@@ -432,6 +556,14 @@ export function RequestEditor() {
     if (currentContent === activeTabContent) return;
     view.dispatch({ changes: { from: 0, to: currentContent.length, insert: activeTabContent } });
   }, [activeTabContent]);
+
+  // Force gutter to re-render when regions change (the getter reads the ref live,
+  // but CodeMirror only re-renders on transactions — dispatch a no-op to trigger it)
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({});
+  }, [regions]);
 
   return (
     <div className="editor-container">
