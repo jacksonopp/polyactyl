@@ -27,7 +27,7 @@ Polyactyl is designed to be keyboard-first. All common actions have shortcuts so
 
 | Action | macOS | Windows / Linux |
 |---|---|---|
-| Send active request | <kbd>⌘</kbd><kbd>Enter</kbd> | <kbd>Ctrl</kbd><kbd>Enter</kbd> |
+| Send request at cursor (falls back to whole file) | <kbd>⌘</kbd><kbd>Enter</kbd> | <kbd>Ctrl</kbd><kbd>Enter</kbd> |
 | Send all requests in file | <kbd>⌘</kbd><kbd>Shift</kbd><kbd>Enter</kbd> | <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>Enter</kbd> |
 | Cancel running request | <kbd>Esc</kbd> | <kbd>Esc</kbd> |
 

@@ -1,15 +1,28 @@
 ---
 title: Request Runner
-description: Send HTTP requests and entire files with real-time progress feedback.
+description: Send individual requests or entire files with real-time progress feedback.
 ---
 
-The **Request Runner** lives in the **Toolbar** at the top of the editor area. It lets you send the currently active request or every request in the open file.
+The **Request Runner** lets you send a single request or every request in the open file. There are three ways to target an individual request: the **gutter marker**, the **Request Outline panel**, and the **keyboard shortcut**.
 
 ## Sending a Request
 
-### Send the Active Request
+### Run a Single Request via Gutter Marker
 
-Click the **Send** button (or press <kbd>⌘</kbd><kbd>Enter</kbd> / <kbd>Ctrl</kbd><kbd>Enter</kbd>) to execute whichever request the cursor is in. httpYac parses the file, finds the request closest to the cursor position, and runs it.
+Every request in the file gets a **▶ play marker** in the editor gutter, on the line where the request starts. Click the marker to send only that request — no need to move the cursor.
+
+### Send the Request at the Cursor
+
+Press <kbd>⌘</kbd><kbd>Enter</kbd> / <kbd>Ctrl</kbd><kbd>Enter</kbd> (or click the **Send** button in the toolbar) to run the request the cursor is currently inside. If the cursor is outside any request (for example in a file-level variable block), the entire file is sent as a fallback.
+
+### Use the Request Outline
+
+The **Request Outline** panel in the left sidebar lists every request in the open file, in document order, with its method and name (or URL if unnamed). Each entry has:
+
+- **Jump to** — click the entry to scroll the editor to that request and move the cursor there
+- **Run** — click the run button on an entry to send only that request
+
+The outline updates live as you edit the file.
 
 ### Send All Requests in a File
 
@@ -31,7 +44,7 @@ See [Environments](/guides/environments/) for full details on each format.
 
 When a request is running, the toolbar shows a spinner and the name of the currently executing request. For multi-request files you can watch progress in real time as each request completes or errors.
 
-Requests can be **cancelled** mid-flight with the **Stop** button that appears during execution.
+Requests can be **cancelled** mid-flight with the **Cancel** button that appears in the toolbar during execution. The UI returns to a ready state as soon as the request is stopped.
 
 ## Redirects
 

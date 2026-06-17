@@ -82,6 +82,21 @@ Content-Type: application/octet-stream
 
 See the [httpYac Syntax reference](/reference/httpyac-syntax/) for the complete feature set.
 
+## Request Gutter Markers
+
+Every request in the file gets a **▶ play marker** in the gutter, aligned with the first line of the request. Click the marker to send that request immediately — without moving the cursor or touching the toolbar.
+
+The markers update as you edit, so newly added or removed requests are reflected instantly.
+
+## Request Outline
+
+The **Request Outline** panel in the left sidebar provides an overview of every request in the open file. Each entry shows the request's method and name (or URL if the request has no explicit name).
+
+- Click an entry to scroll the editor to that request
+- Click the run button on an entry to send only that request
+
+See [Request Runner](/guides/request-runner/) for the full set of ways to target individual requests.
+
 ## Resizing Panes
 
 Drag the vertical divider between the **Editor** and **Response** panes to resize them. The sidebar divider can also be dragged. All pane sizes are remembered within the current session.

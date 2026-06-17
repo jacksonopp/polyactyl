@@ -78,10 +78,13 @@ GET https://api.example.com/users/1
 %}
 ```
 
-## Copying Response Data
+## Exporting Response Data
 
 - **Copy Body** — copies the raw response body to the clipboard
+- **Save Body** — opens a save dialog so you can write the response body to a file on disk; useful for saving binary downloads or large JSON payloads
 - **Copy as cURL** — copies the sent request as a `curl` command (useful for sharing with colleagues or debugging outside Polyactyl)
+
+Both **Copy Body** and **Save Body** are only active when there is a response body to export.
 
 :::tip
 The Response Viewer pane can be resized by dragging the divider between it and the editor.
