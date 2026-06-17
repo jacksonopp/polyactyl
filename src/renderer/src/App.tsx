@@ -26,7 +26,9 @@ export default function App() {
   const [outlineOpen, setOutlineOpen] = useState(true);
   // outlineOpen lives here so the RequestEditor scrollToLineRef can be wired through App
   const [editorWidth, setEditorWidth] = useState<number | null>(null);
+  const [requestsHeight, setRequestsHeight] = useState<number | null>(null);
   const editorSplitRef = useRef<HTMLDivElement>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
   const scrollToLineRef = useRef<((line: number) => void) | null>(null);
 
   const handleSidebarDrag = useCallback((delta: number) => {
@@ -38,6 +40,14 @@ export default function App() {
     setEditorWidth(w => {
       const current = w ?? totalWidth / 2;
       return Math.max(PANE_MIN, Math.min(totalWidth - PANE_MIN, current + delta));
+    });
+  }, []);
+
+  const handleRequestsHeightDrag = useCallback((delta: number) => {
+    const totalHeight = sidebarRef.current?.offsetHeight ?? 500;
+    setRequestsHeight(h => {
+      const current = h ?? totalHeight * 0.35;
+      return Math.max(100, Math.min(totalHeight - 100, current - delta));
     });
   }, []);
 
@@ -88,9 +98,10 @@ export default function App() {
 
   return (
     <div className="app">
-      <aside className="sidebar" style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
+      <aside className="sidebar" style={{ width: sidebarWidth, minWidth: sidebarWidth }} ref={sidebarRef}>
         <FileSidebar />
-        <div className="sidebar-requests-section">
+        <ResizeHandle vertical onDrag={handleRequestsHeightDrag} />
+        <div className="sidebar-requests-section" style={requestsHeight !== null ? { height: requestsHeight } : undefined}>
           <button
             type="button"
             className="sidebar-section-toggle"

@@ -2,17 +2,17 @@ import { useCallback } from 'react';
 
 interface ResizeHandleProps {
   onDrag: (delta: number) => void;
+  vertical?: boolean;
 }
 
-export function ResizeHandle({ onDrag }: ResizeHandleProps) {
+export function ResizeHandle({ onDrag, vertical = false }: ResizeHandleProps) {
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
-      let lastX = e.clientX;
+      const lastPos = vertical ? e.clientY : e.clientX;
 
       const onMouseMove = (ev: MouseEvent) => {
-        const delta = ev.clientX - lastX;
-        lastX = ev.clientX;
+        const delta = (vertical ? ev.clientY : ev.clientX) - lastPos;
         onDrag(delta);
       };
 
@@ -25,18 +25,18 @@ export function ResizeHandle({ onDrag }: ResizeHandleProps) {
 
       document.addEventListener('mousemove', onMouseMove);
       document.addEventListener('mouseup', onMouseUp);
-      document.body.style.cursor = 'col-resize';
+      document.body.style.cursor = vertical ? 'row-resize' : 'col-resize';
       document.body.style.userSelect = 'none';
     },
-    [onDrag]
+    [onDrag, vertical]
   );
 
   return (
     <div
-      className="resize-handle"
+      className={`resize-handle ${vertical ? 'resize-handle-vertical' : ''}`}
       onMouseDown={handleMouseDown}
       role="separator"
-      aria-orientation="vertical"
+      aria-orientation={vertical ? 'horizontal' : 'vertical'}
     />
   );
 }

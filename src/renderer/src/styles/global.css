@@ -138,6 +138,16 @@ button {
   inset: 0 -3px;
 }
 
+.resize-handle-vertical {
+  width: auto;
+  height: 5px;
+  cursor: row-resize;
+}
+
+.resize-handle-vertical::after {
+  inset: -3px 0;
+}
+
 .resize-handle:hover,
 .resize-handle:active {
   background: var(--accent-blue);
@@ -1964,6 +1974,7 @@ button {
   flex-direction: column;
   flex-shrink: 0;
   max-height: 40%;
+  min-height: 100px;
 }
 
 .sidebar-section-toggle {
