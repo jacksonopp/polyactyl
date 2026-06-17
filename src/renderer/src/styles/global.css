@@ -1974,7 +1974,6 @@ button {
   flex-direction: column;
   flex-shrink: 0;
   max-height: 40%;
-  min-height: 100px;
 }
 
 .sidebar-section-toggle {

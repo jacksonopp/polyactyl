@@ -29,6 +29,7 @@ export default function App() {
   const [requestsHeight, setRequestsHeight] = useState<number | null>(null);
   const editorSplitRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const requestsSectionRef = useRef<HTMLDivElement>(null);
   const scrollToLineRef = useRef<((line: number) => void) | null>(null);
 
   const handleSidebarDrag = useCallback((delta: number) => {
@@ -46,8 +47,8 @@ export default function App() {
   const handleRequestsHeightDrag = useCallback((delta: number) => {
     const totalHeight = sidebarRef.current?.offsetHeight ?? 500;
     setRequestsHeight(h => {
-      const current = h ?? totalHeight * 0.35;
-      return Math.max(100, Math.min(totalHeight - 100, current - delta));
+      const current = h ?? requestsSectionRef.current?.offsetHeight ?? totalHeight * 0.35;
+      return Math.max(60, Math.min(totalHeight - 100, current - delta));
     });
   }, []);
 
@@ -100,8 +101,12 @@ export default function App() {
     <div className="app">
       <aside className="sidebar" style={{ width: sidebarWidth, minWidth: sidebarWidth }} ref={sidebarRef}>
         <FileSidebar />
-        <ResizeHandle vertical onDrag={handleRequestsHeightDrag} />
-        <div className="sidebar-requests-section" style={requestsHeight !== null ? { height: requestsHeight } : undefined}>
+        {outlineOpen && <ResizeHandle vertical onDrag={handleRequestsHeightDrag} />}
+        <div
+          className="sidebar-requests-section"
+          ref={requestsSectionRef}
+          style={outlineOpen && requestsHeight !== null ? { height: requestsHeight } : undefined}
+        >
           <button
             type="button"
             className="sidebar-section-toggle"

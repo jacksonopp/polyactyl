@@ -9,10 +9,12 @@ export function ResizeHandle({ onDrag, vertical = false }: ResizeHandleProps) {
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
-      const lastPos = vertical ? e.clientY : e.clientX;
+      let lastPos = vertical ? e.clientY : e.clientX;
 
       const onMouseMove = (ev: MouseEvent) => {
-        const delta = (vertical ? ev.clientY : ev.clientX) - lastPos;
+        const pos = vertical ? ev.clientY : ev.clientX;
+        const delta = pos - lastPos;
+        lastPos = pos;
         onDrag(delta);
       };
 
