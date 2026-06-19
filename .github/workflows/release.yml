@@ -13,8 +13,6 @@ env:
 jobs:
   version-bump:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     outputs:
       new_version: ${{ steps.bump.outputs.new_version }}
 
@@ -31,14 +29,17 @@ jobs:
       - name: Bump patch version
         id: bump
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
           npm version patch --no-git-tag-version
           NEW_VERSION=$(node -p "require('./package.json').version")
           echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-          git add package.json package-lock.json
-          git commit -m "chore: bump version to v$NEW_VERSION [skip ci]"
-          git push
+
+      - name: Upload bumped package files
+        uses: actions/upload-artifact@v4
+        with:
+          name: version-bump
+          path: |
+            package.json
+            package-lock.json
 
   build:
     needs: version-bump
@@ -68,6 +69,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
+
+      - name: Download bumped package files
+        uses: actions/download-artifact@v4
+        with:
+          name: version-bump
 
       - uses: actions/setup-node@v4
         with:
