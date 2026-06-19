@@ -1,10 +1,10 @@
 ### HTTPBin - Simple GET
-GET https://httpbin.org/get
+GET {{baseUrl}}/get
 
 ###
 
 ### HTTPBin - POST with JSON
-POST https://httpbin.org/post
+POST {{baseUrl}}/post
 Content-Type: application/json
 
 {
@@ -15,29 +15,29 @@ Content-Type: application/json
 ###
 
 ### HTTPBin - Headers
-GET https://httpbin.org/headers
+GET {{baseUrl}}/headers
 
 ###
 
 ### HTTPBin - Status Code (200)
-GET https://httpbin.org/status/200
+GET {{baseUrl}}/status/200
 
 ###
 
 ### HTTPBin - Status Code (404)
-GET https://httpbin.org/status/404
+GET {{baseUrl}}/status/404
 
 ###
 
 ### HTTPBin - Delay Response (5 seconds)
-GET https://httpbin.org/delay/5
+GET {{baseUrl}}/delay/5
 
 ###
 
 ### HTTPBin - IP Address
-GET https://httpbin.org/ip
+GET {{baseUrl}}/ip
 
 ###
 
 ### HTTPBin - User Agent
-GET https://httpbin.org/user-agent
+GET {{baseUrl}}/user-agent

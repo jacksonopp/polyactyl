@@ -13,23 +13,18 @@ GET https://pokeapi.co/api/v2/type/electric
 
 ###
 
-### OpenWeather - Get List of Cities (public endpoint)
-GET https://openweathermap.org/find?q=London&appid=b6fd43953d41a3deb13d6b8827a1fda2
-
-###
-
 ### ReqRes - Get Users
-GET https://reqres.in/api/users
+GET {{reqresBaseUrl}}/users
 
 ###
 
 ### ReqRes - Get Single User
-GET https://reqres.in/api/users/2
+GET {{reqresBaseUrl}}/users/{{userId}}
 
 ###
 
 ### ReqRes - Create User
-POST https://reqres.in/api/users
+POST {{reqresBaseUrl}}/users
 Content-Type: application/json
 
 {
@@ -40,7 +35,7 @@ Content-Type: application/json
 ###
 
 ### ReqRes - Update User
-PUT https://reqres.in/api/users/2
+PUT {{reqresBaseUrl}}/users/{{userId}}
 Content-Type: application/json
 
 {
@@ -51,7 +46,7 @@ Content-Type: application/json
 ###
 
 ### ReqRes - Delete User
-DELETE https://reqres.in/api/users/2
+DELETE {{reqresBaseUrl}}/users/{{userId}}
 
 ###
 
