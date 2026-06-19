@@ -1,5 +1,5 @@
 ### Form Data - Create User Account
-POST https://httpbin.org/post
+POST {{baseUrl}}/post
 Content-Type: application/x-www-form-urlencoded
 
 username=polly&email=polly@polyactyl.dev&role=admin
@@ -7,21 +7,21 @@ username=polly&email=polly@polyactyl.dev&role=admin
 ###
 
 ### Bearer Token Authorization
-GET https://httpbin.org/bearer
-Authorization: Bearer your-api-token-here
+GET {{baseUrl}}/bearer
+Authorization: Bearer {{apiKey}}
 
 ###
 
 ### Custom Headers
-GET https://httpbin.org/get
+GET {{baseUrl}}/get
 X-Custom-Header: Polyactyl
-X-Api-Key: demo-key-12345
+X-Api-Key: {{apiKey}}
 Accept: application/json
 
 ###
 
 ### GraphQL Query
-POST https://httpbin.org/post
+POST {{baseUrl}}/post
 Content-Type: application/json
 
 query {
@@ -37,7 +37,7 @@ query {
 ###
 
 ### XML Content
-POST https://httpbin.org/post
+POST {{baseUrl}}/post
 Content-Type: application/xml
 
 <?xml version="1.0" encoding="UTF-8"?>
@@ -49,7 +49,7 @@ Content-Type: application/xml
 ###
 
 ### Large JSON Payload
-POST https://httpbin.org/post
+POST {{baseUrl}}/post
 Content-Type: application/json
 
 {
@@ -70,18 +70,18 @@ Content-Type: application/json
 ###
 
 ### Basic Authentication
-GET https://httpbin.org/basic-auth/user/passwd
-Authorization: Basic dXNlcjpwYXNzd2Q=
+GET {{baseUrl}}/basic-auth/{{username}}/{{password}}
+Authorization: Basic {{username}} {{password}}
 
 ###
 
 ### HTTP Redirect
-GET https://httpbin.org/redirect/3
+GET {{baseUrl}}/redirect/3
 
 ###
 
 ### Different Content Types
-PUT https://httpbin.org/put
+PUT {{baseUrl}}/put
 Content-Type: text/plain
 
 This is plain text content being sent to the server.

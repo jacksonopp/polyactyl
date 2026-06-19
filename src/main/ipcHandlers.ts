@@ -372,12 +372,12 @@ async function writePrefs(prefs: Record<string, unknown>): Promise<void> {
 export function registerIpcHandlers(): void {
   initProviders();
 
-  handle<{ key: string }, unknown>('prefs:get', async ({ key }) => {
+  handle<{ key: string }, unknown>('prefs:get', async (_event, { key }) => {
     const prefs = await readPrefs();
     return prefs[key] ?? null;
   });
 
-  handle<{ key: string; value: unknown }, void>('prefs:set', async ({ key, value }) => {
+  handle<{ key: string; value: unknown }, void>('prefs:set', async (_event, { key, value }) => {
     const prefs = await readPrefs();
     prefs[key] = value;
     await writePrefs(prefs);

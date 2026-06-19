@@ -1,20 +1,22 @@
+@jsonBaseUrl = https://jsonplaceholder.typicode.com
+
 ### JSONPlaceholder - Get All Posts
-GET https://jsonplaceholder.typicode.com/posts
+GET {{jsonBaseUrl}}/posts
 
 ###
 
 ### JSONPlaceholder - Get Single Post
-GET https://jsonplaceholder.typicode.com/posts/1
+GET {{jsonBaseUrl}}/posts/1
 
 ###
 
 ### JSONPlaceholder - Get Post Comments
-GET https://jsonplaceholder.typicode.com/posts/1/comments
+GET {{jsonBaseUrl}}/posts/1/comments
 
 ###
 
 ### JSONPlaceholder - Create Post
-POST https://jsonplaceholder.typicode.com/posts
+POST {{jsonBaseUrl}}/posts
 Content-Type: application/json
 
 {
@@ -26,7 +28,7 @@ Content-Type: application/json
 ###
 
 ### JSONPlaceholder - Update Post
-PUT https://jsonplaceholder.typicode.com/posts/1
+PUT {{jsonBaseUrl}}/posts/1
 Content-Type: application/json
 
 {
@@ -39,14 +41,14 @@ Content-Type: application/json
 ###
 
 ### JSONPlaceholder - Delete Post
-DELETE https://jsonplaceholder.typicode.com/posts/1
+DELETE {{jsonBaseUrl}}/posts/1
 
 ###
 
 ### JSONPlaceholder - Get Users
-GET https://jsonplaceholder.typicode.com/users
+GET {{jsonBaseUrl}}/users
 
 ###
 
 ### JSONPlaceholder - Get Todos
-GET https://jsonplaceholder.typicode.com/todos
+GET {{jsonBaseUrl}}/todos
